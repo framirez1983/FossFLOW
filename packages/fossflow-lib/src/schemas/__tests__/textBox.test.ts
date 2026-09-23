@@ -17,4 +17,25 @@ describe('textBoxSchema', () => {
       ).toBe(true);
     }
   });
+  it('accepts a missing textOrientation (behaves as SCREEN)', () => {
+    const legacy = { id: 'tb1', tile: { x: 0, y: 0 }, content: 'Text' };
+    const result = textBoxSchema.safeParse(legacy);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.textOrientation).toBeUndefined();
+    }
+  });
+  it('accepts SCREEN and FOLLOW_PLANE and rejects other values', () => {
+    const base = { id: 'tb1', tile: { x: 0, y: 0 }, content: 'Text' };
+    expect(
+      textBoxSchema.safeParse({ ...base, textOrientation: 'SCREEN' }).success
+    ).toBe(true);
+    expect(
+      textBoxSchema.safeParse({ ...base, textOrientation: 'FOLLOW_PLANE' })
+        .success
+    ).toBe(true);
+    expect(
+      textBoxSchema.safeParse({ ...base, textOrientation: 'SIDEWAYS' }).success
+    ).toBe(false);
+  });
 });

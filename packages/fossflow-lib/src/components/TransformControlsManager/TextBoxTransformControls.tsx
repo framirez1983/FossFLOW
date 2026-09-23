@@ -19,5 +19,11 @@ export const TextBoxTransformControls = ({ id }: Props) => {
     return null;
   }
 
-  return <TransformControls from={textBox.tile} to={to} />;
+  return (
+    <TransformControls
+      from={textBox.tile}
+      to={to}
+      keepUpright={textBox.textOrientation !== 'FOLLOW_PLANE'}
+    />
+  );
 };

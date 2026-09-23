@@ -19,6 +19,8 @@ export const SceneLayer = memo(({
   const [isFirstRender, setIsFirstRender] = useState(true);
   const elementRef = useRef<HTMLDivElement>(null);
 
+  const viewOrientation = useUiStateStore(state => state.viewOrientation);
+  const previousOrientation = useRef(viewOrientation);
   const scroll = useUiStateStore((state) => {
     return state.scroll;
   });
@@ -30,17 +32,18 @@ export const SceneLayer = memo(({
     if (!elementRef.current) return;
 
     gsap.to(elementRef.current, {
-      duration: disableAnimation || isFirstRender ? 0 : 0.016, // ~1 frame at 60fps for smooth motion
+      duration: disableAnimation || isFirstRender || previousOrientation.current !== viewOrientation ? 0 : 0.016, // ~1 frame at 60fps for smooth motion
       ease: 'none', // Linear easing for immediate response
       translateX: scroll.position.x,
       translateY: scroll.position.y,
       scale: zoom
     });
 
+    previousOrientation.current = viewOrientation;
     if (isFirstRender) {
       setIsFirstRender(false);
     }
-  }, [zoom, scroll, disableAnimation, isFirstRender]);
+  }, [zoom, scroll, disableAnimation, isFirstRender, viewOrientation]);
 
   return (
     <Box

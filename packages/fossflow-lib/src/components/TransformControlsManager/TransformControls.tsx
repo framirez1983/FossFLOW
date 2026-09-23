@@ -1,3 +1,5 @@
+import { useUiStateStore } from 'src/stores/uiStateStore';
+import { orientProjected } from 'src/utils/viewOrientation';
 import React, { useMemo } from 'react';
 import { Coords, AnchorPosition } from 'src/types';
 import { Svg } from 'src/components/Svg/Svg';
@@ -12,6 +14,7 @@ import {
 import { TransformAnchor } from './TransformAnchor';
 
 interface Props {
+  keepUpright?: boolean;
   from: Coords;
   to: Coords;
   onAnchorMouseDown?: (anchorPosition: AnchorPosition) => void;
@@ -19,10 +22,12 @@ interface Props {
 
 const strokeWidth = 2;
 
-export const TransformControls = ({ from, to, onAnchorMouseDown }: Props) => {
+export const TransformControls = ({ from, to, onAnchorMouseDown, keepUpright = false }: Props) => {
+  const viewOrientation = useUiStateStore(state => state.viewOrientation);
   const { css, pxSize } = useIsoProjection({
     from,
-    to
+    to,
+    keepUpright
   });
 
   const anchors = useMemo(() => {
@@ -38,7 +43,7 @@ export const TransformControls = ({ from, to, onAnchorMouseDown }: Props) => {
         });
 
         return {
-          position,
+          position: orientProjected(position, viewOrientation),
           onMouseDown: () => {
             onAnchorMouseDown(key as AnchorPosition);
           }
@@ -47,7 +52,7 @@ export const TransformControls = ({ from, to, onAnchorMouseDown }: Props) => {
     );
 
     return cornerPositions;
-  }, [onAnchorMouseDown, from, to]);
+  }, [onAnchorMouseDown, from, to, viewOrientation]);
 
   return (
     <>

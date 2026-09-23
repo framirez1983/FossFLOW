@@ -22,7 +22,8 @@ export const TextBox = memo(({ textBox }: Props) => {
   const { css } = useIsoProjection({
     from: textBox.tile,
     to,
-    orientation: textBox.orientation
+    orientation: textBox.orientation,
+    keepUpright: textBox.textOrientation !== 'FOLLOW_PLANE'
   });
 
   return (

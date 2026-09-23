@@ -1,5 +1,7 @@
 import React from 'react';
 import {
+  RotateLeft,
+  RotateRight,
   Add as ZoomInIcon,
   Remove as ZoomOutIcon,
   CropFreeOutlined as FitToScreenIcon,
@@ -21,6 +23,7 @@ export const ZoomControls = () => {
   const zoom = useUiStateStore((state) => {
     return state.zoom;
   });
+  const orientation = useUiStateStore(state => state.viewOrientation);
   const { fitToView } = useDiagramUtils();
 
   return (
@@ -53,6 +56,15 @@ export const ZoomControls = () => {
             onClick={uiStateStoreActions.incrementZoom}
             disabled={zoom <= MIN_ZOOM}
           />
+        </Stack>
+      </UiElement>
+      <UiElement>
+        <Stack direction="row" alignItems="center">
+          <IconButton name="Rotate view counter-clockwise" Icon={<RotateLeft />}
+            onClick={() => uiStateStoreActions.rotateView(false)} />
+          <Typography variant="body2" color="text.secondary">{orientation}</Typography>
+          <IconButton name="Rotate view clockwise" Icon={<RotateRight />}
+            onClick={() => uiStateStoreActions.rotateView(true)} />
         </Stack>
       </UiElement>
       <UiElement>

@@ -1,4 +1,6 @@
 import { produce } from 'immer';
+import { ViewOrientation } from 'src/types/ui';
+import { orientProjected, inverseOrientation, orientTile } from './viewOrientation';
 import {
   UNPROJECTED_TILE_SIZE,
   PROJECTED_TILE_SIZE,
@@ -41,6 +43,7 @@ import {
 import { useScene } from 'src/hooks/useScene';
 
 interface ScreenToIso {
+  viewOrientation?: ViewOrientation;
   mouse: Coords;
   zoom: number;
   scroll: Scroll;
@@ -52,16 +55,17 @@ export const screenToIso = ({
   mouse,
   zoom,
   scroll,
-  rendererSize
+  rendererSize,
+  viewOrientation = 'NE'
 }: ScreenToIso) => {
   const projectedTileSize = SizeUtils.multiply(PROJECTED_TILE_SIZE, zoom);
   const halfW = projectedTileSize.width / 2;
   const halfH = projectedTileSize.height / 2;
 
-  const projectPosition = {
+  const projectPosition = orientProjected({
     x: -rendererSize.width * 0.5 + mouse.x - scroll.position.x,
     y: -rendererSize.height * 0.5 + mouse.y - scroll.position.y
-  };
+  }, inverseOrientation(viewOrientation));
 
   const tile = {
     x: Math.floor(
@@ -78,21 +82,23 @@ export const screenToIso = ({
 };
 
 interface GetTilePosition {
+  viewOrientation?: ViewOrientation;
   tile: Coords;
   origin?: TileOrigin;
 }
 
 export const getTilePosition = ({
   tile,
-  origin = 'CENTER'
+  origin = 'CENTER',
+  viewOrientation = 'NE'
 }: GetTilePosition) => {
   const halfW = PROJECTED_TILE_SIZE.width / 2;
   const halfH = PROJECTED_TILE_SIZE.height / 2;
 
-  const position: Coords = {
+  const position: Coords = orientProjected({
     x: halfW * tile.x - halfW * tile.y,
     y: -(halfH * tile.x + halfH * tile.y)
-  };
+  }, viewOrientation);
 
   switch (origin) {
     case 'TOP':
@@ -113,8 +119,8 @@ type IsoToScreen = GetTilePosition & {
   rendererSize: Size;
 };
 
-export const isoToScreen = ({ tile, origin, rendererSize }: IsoToScreen) => {
-  const position = getTilePosition({ tile, origin });
+export const isoToScreen = ({ tile, origin, rendererSize, viewOrientation }: IsoToScreen) => {
+  const position = getTilePosition({ tile, origin, viewOrientation });
 
   return {
     x: position.x + rendererSize.width / 2,
@@ -241,6 +247,7 @@ export const decrementZoom = (zoom: number) => {
 };
 
 interface GetMouse {
+  viewOrientation?: ViewOrientation;
   interactiveElement: HTMLElement;
   zoom: number;
   scroll: Scroll;
@@ -255,7 +262,8 @@ export const getMouse = ({
   scroll,
   lastMouse,
   mouseEvent,
-  rendererSize
+  rendererSize,
+  viewOrientation = 'NE'
 }: GetMouse): Mouse => {
   const componentOffset = interactiveElement.getBoundingClientRect();
   const offset: Coords = {
@@ -274,6 +282,7 @@ export const getMouse = ({
     screen: mousePosition,
     tile: screenToIso({
       mouse: mousePosition,
+      viewOrientation,
       zoom,
       scroll,
       rendererSize
@@ -474,7 +483,19 @@ export const getItemAtTile = ({
       }
     ]);
 
-    return isWithinBounds(tile, textBoxBounds);
+    // Screen-upright text keeps its legacy footprint: test the click offset
+    // mapped into view coordinates. Plane-following text rotates with the
+    // view, so the mapping is inverted to test the same footprint.
+    const relativeTile = CoordsUtils.subtract(tile, tb.tile);
+    const orientationForTest =
+      tb.textOrientation === 'FOLLOW_PLANE'
+        ? inverseOrientation(scene.viewOrientation ?? 'NE')
+        : (scene.viewOrientation ?? 'NE');
+    const labelTile = CoordsUtils.add(
+      tb.tile,
+      orientTile(relativeTile, orientationForTest)
+    );
+    return isWithinBounds(labelTile, textBoxBounds);
   });
 
   if (textBox) {
@@ -794,12 +815,13 @@ export const getVisualBounds = (view: View, padding = 50) => {
   };
 };
 
-export const getUnprojectedBounds = (view: View) => {
+export const getUnprojectedBounds = (view: View, viewOrientation: ViewOrientation = 'NE') => {
   const projectBounds = getProjectBounds(view);
 
   const cornerPositions = projectBounds.map((corner) => {
     return getTilePosition({
-      tile: corner
+      tile: corner,
+      viewOrientation
     });
   });
   const sortedCorners = sortByPosition(cornerPositions);
@@ -814,7 +836,12 @@ export const getUnprojectedBounds = (view: View) => {
   };
 };
 
-export const getFitToViewParams = (view: View, viewportSize: Size) => {
+export const getFitToViewParams = (view: View, viewportSize: Size, viewOrientation: ViewOrientation = 'NE') => {
+  if (viewOrientation !== 'NE') {
+    const bounds = getUnprojectedBounds(view, viewOrientation);
+    const zoom = clamp(Math.min(viewportSize.width / bounds.width, viewportSize.height / bounds.height), 0, MAX_ZOOM);
+    return { zoom, scroll: { x: -(bounds.x + bounds.width / 2) * zoom, y: -(bounds.y + bounds.height / 2) * zoom } };
+  }
   const projectBounds = getProjectBounds(view);
   const sortedCornerPositions = sortByPosition(projectBounds);
   const boundingBoxSize = getBoundingBoxSize(projectBounds);

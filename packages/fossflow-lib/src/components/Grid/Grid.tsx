@@ -12,6 +12,8 @@ export const Grid = () => {
   const elementRef = useRef<HTMLDivElement>(null);
   const { size } = useResizeObserver(elementRef.current);
   const [isFirstRender, setIsFirstRender] = useState(true);
+  const viewOrientation = useUiStateStore(state => state.viewOrientation);
+  const previousOrientation = useRef(viewOrientation);
   const scroll = useUiStateStore((state) => {
     return state.scroll;
   });
@@ -30,16 +32,17 @@ export const Grid = () => {
     };
 
     gsap.to(elementRef.current, {
-      duration: isFirstRender ? 0 : 0.016, // ~1 frame at 60fps for smooth motion
+      duration: isFirstRender || previousOrientation.current !== viewOrientation ? 0 : 0.016, // ~1 frame at 60fps for smooth motion
       ease: 'none', // Linear easing for immediate response
       backgroundSize: `${tileSize.width}px ${tileSize.height * 2}px`,
       backgroundPosition: `${backgroundPosition.width}px ${backgroundPosition.height}px`
     });
 
+    previousOrientation.current = viewOrientation;
     if (isFirstRender) {
       setIsFirstRender(false);
     }
-  }, [scroll, zoom, isFirstRender, size]);
+  }, [scroll, zoom, isFirstRender, size, viewOrientation]);
 
   return (
     <Box

@@ -1,5 +1,5 @@
 import React from 'react';
-import { ProjectionOrientationEnum } from 'src/types';
+import { ProjectionOrientationEnum, TextOrientationEnum } from 'src/types';
 import {
   Box,
   TextField,
@@ -95,6 +95,29 @@ export const TextBoxControls = ({ id }: Props) => {
                   transform: `scale(-1, 1) ${getIsoProjectionCss()} scale(-1, 1)`
                 }}
               />
+            </ToggleButton>
+          </ToggleButtonGroup>
+        </Section>
+        <Section title="Text rotation">
+          <ToggleButtonGroup
+            value={textBox.textOrientation ?? TextOrientationEnum.SCREEN}
+            exclusive
+            onChange={(e, textOrientation) => {
+              if (
+                (textBox.textOrientation ?? TextOrientationEnum.SCREEN) ===
+                  textOrientation ||
+                textOrientation === null
+              )
+                return;
+
+              updateTextBox(textBox.id, { textOrientation });
+            }}
+          >
+            <ToggleButton value={TextOrientationEnum.SCREEN}>
+              Screen
+            </ToggleButton>
+            <ToggleButton value={TextOrientationEnum.FOLLOW_PLANE}>
+              Follow plane
             </ToggleButton>
           </ToggleButtonGroup>
         </Section>

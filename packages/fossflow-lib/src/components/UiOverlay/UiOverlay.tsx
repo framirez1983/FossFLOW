@@ -57,6 +57,7 @@ const getEditorModeMapping = (editorMode: keyof typeof EditorModeEnum) => {
 };
 
 export const UiOverlay = () => {
+  const viewOrientation = useUiStateStore(state => state.viewOrientation);
   const theme = useTheme();
   const contextMenuAnchorRef = useRef<HTMLDivElement>(null);
   const toolMenuRef = useRef<HTMLDivElement>(null);
@@ -271,8 +272,8 @@ export const UiOverlay = () => {
             ref={contextMenuAnchorRef} 
             sx={{
               position: 'absolute',
-              left: getTilePosition({ tile: contextMenu.tile }).x,
-              top: getTilePosition({ tile: contextMenu.tile }).y
+              left: getTilePosition({ tile: contextMenu.tile, viewOrientation }).x,
+              top: getTilePosition({ tile: contextMenu.tile, viewOrientation }).y
             }}
           />
         )}

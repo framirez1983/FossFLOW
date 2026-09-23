@@ -338,6 +338,7 @@ export const useInteractionManager = () => {
       const nextMouse = getMouse({
         interactiveElement: rendererRef.current,
         zoom: uiState.zoom,
+        viewOrientation: uiState.viewOrientation,
         scroll: uiState.scroll,
         lastMouse: uiState.mouse,
         mouseEvent: e,
@@ -346,7 +347,9 @@ export const useInteractionManager = () => {
 
       if (e.type === 'mousemove') {
         scheduleUpdate(nextMouse, e, (update) => {
-          processMouseUpdate(update.mouse, update.event);
+          if (uiStateApi.getState().viewOrientation === uiState.viewOrientation) {
+            processMouseUpdate(update.mouse, update.event);
+          }
         });
       } else {
         flushUpdate();

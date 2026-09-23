@@ -1,3 +1,4 @@
+import { useUiStateStore } from 'src/stores/uiStateStore';
 import React, { useMemo } from 'react';
 import { Box } from '@mui/material';
 import { Coords } from 'src/types';
@@ -10,11 +11,12 @@ interface Props {
 }
 
 export const DragAndDrop = ({ iconId, tile }: Props) => {
-  const { iconComponent } = useIcon(iconId);
+  const viewOrientation = useUiStateStore(state => state.viewOrientation);
+  const { iconComponent } = useIcon(iconId, viewOrientation);
 
   const tilePosition = useMemo(() => {
-    return getTilePosition({ tile, origin: 'BOTTOM' });
-  }, [tile]);
+    return getTilePosition({ tile, origin: 'BOTTOM', viewOrientation });
+  }, [tile, viewOrientation]);
 
   return (
     <Box

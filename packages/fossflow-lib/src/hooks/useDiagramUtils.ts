@@ -12,6 +12,7 @@ import { useResizeObserver } from './useResizeObserver';
 
 export const useDiagramUtils = () => {
   const scene = useScene();
+  const viewOrientation = useUiStateStore(state => state.viewOrientation);
   const rendererEl = useUiStateStore((state) => {
     return state.rendererEl;
   });
@@ -30,9 +31,9 @@ export const useDiagramUtils = () => {
 
   const getFitToViewParams = useCallback(
     (viewportSize: Size) => {
-      return getFitToViewParamsUtil(scene.currentView, viewportSize);
+      return getFitToViewParamsUtil(scene.currentView, viewportSize, viewOrientation);
     },
-    [scene.currentView]
+    [scene.currentView, viewOrientation]
   );
 
   const fitToView = useCallback(async () => {

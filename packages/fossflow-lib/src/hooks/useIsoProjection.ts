@@ -1,4 +1,6 @@
 import { useMemo } from 'react';
+import { useUiStateStore } from 'src/stores/uiStateStore';
+import { orientProjected, orientationCss } from 'src/utils/viewOrientation';
 import { Coords, Size, ProjectionOrientationEnum } from 'src/types';
 import {
   getBoundingBox,
@@ -12,19 +14,22 @@ interface Props {
   to: Coords;
   originOverride?: Coords;
   orientation?: keyof typeof ProjectionOrientationEnum;
+  keepUpright?: boolean;
 }
 
 export const useIsoProjection = ({
   from,
   to,
   originOverride,
-  orientation
+  orientation,
+  keepUpright = false
 }: Props): {
   css: React.CSSProperties;
   position: Coords;
   gridSize: Size;
   pxSize: Size;
 } => {
+  const viewOrientation = useUiStateStore(state => state.viewOrientation);
   const gridSize = useMemo(() => {
     return {
       width: Math.abs(from.x - to.x) + 1,
@@ -43,11 +48,12 @@ export const useIsoProjection = ({
   const position = useMemo(() => {
     const pos = getTilePosition({
       tile: origin,
-      origin: orientation === 'Y' ? 'TOP' : 'LEFT'
+      origin: orientation === 'Y' ? 'TOP' : 'LEFT',
+      viewOrientation: keepUpright ? viewOrientation : 'NE'
     });
 
-    return pos;
-  }, [origin, orientation]);
+    return keepUpright ? pos : orientProjected(pos, viewOrientation);
+  }, [origin, orientation, viewOrientation, keepUpright]);
 
   const pxSize = useMemo(() => {
     return {
@@ -63,11 +69,13 @@ export const useIsoProjection = ({
       top: position.y,
       width: `${pxSize.width}px`,
       height: `${pxSize.height}px`,
-      transform: getIsoProjectionCss(orientation),
+      transform: viewOrientation === 'NE' || keepUpright
+        ? getIsoProjectionCss(orientation)
+        : `${orientationCss(viewOrientation)} ${getIsoProjectionCss(orientation)}`,
       transformOrigin: 'top left'
     },
     position,
     gridSize,
     pxSize
-  }), [position, pxSize, gridSize, orientation]);
+  }), [position, pxSize, gridSize, orientation, viewOrientation, keepUpright]);
 };

@@ -170,7 +170,10 @@ export interface ContextMenu {
 
 export type ConnectorInteractionMode = 'click' | 'drag';
 
+export type ViewOrientation = 'NE' | 'SE' | 'SW' | 'NW';
+
 export interface UiState {
+  viewOrientation: ViewOrientation;
   view: string;
   mainMenuOptions: MainMenuOptions;
   editorMode: keyof typeof EditorModeEnum;
@@ -196,6 +199,7 @@ export interface UiState {
 }
 
 export interface UiStateActions {
+  rotateView: (clockwise: boolean) => void;
   setView: (view: string) => void;
   setMainMenuOptions: (options: MainMenuOptions) => void;
   setEditorMode: (mode: keyof typeof EditorModeEnum) => void;

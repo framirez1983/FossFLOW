@@ -140,6 +140,7 @@ export const FreehandLasso: ModeActions = {
         return screenToIso({
           mouse: screenPoint,
           zoom: uiState.zoom,
+          viewOrientation: uiState.viewOrientation,
           scroll: uiState.scroll,
           rendererSize: {
             width: rendererSize.width,

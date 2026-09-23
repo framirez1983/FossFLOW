@@ -1,3 +1,5 @@
+import { orientProjected, inverseOrientation, VIEW_ORIENTATIONS } from 'src/utils/viewOrientation';
+import { screenToIso } from 'src/utils/renderer';
 import React, { createContext, useContext, useRef } from 'react';
 import { createStore, useStore } from 'zustand';
 import {
@@ -16,6 +18,7 @@ import { DEFAULT_LABEL_SETTINGS } from 'src/config/labelSettings';
 const initialState = () => {
   return createStore<UiStateStore>((set, get) => {
     return {
+      viewOrientation: 'NE',
       zoom: INITIAL_UI_STATE.zoom,
       scroll: INITIAL_UI_STATE.scroll,
       view: '',
@@ -43,6 +46,57 @@ const initialState = () => {
       iconPackManager: null, // Will be set by Isoflow if provided
 
       actions: {
+        rotateView: (clockwise) => {
+          const state = get();
+          // Do not change the coordinate frame underneath an active gesture.
+          if (
+            state.mouse.mousedown ||
+            state.mode.type === 'DRAG_ITEMS' ||
+            state.mode.type === 'RECTANGLE.DRAW' ||
+            state.mode.type === 'RECTANGLE.TRANSFORM' ||
+            (state.mode.type === 'CONNECTOR' &&
+              (state.mode.id || state.mode.isConnecting))
+          ) return;
+
+          const index = VIEW_ORIENTATIONS.indexOf(state.viewOrientation);
+          const viewOrientation = VIEW_ORIENTATIONS[
+            (index + (clockwise ? 3 : 1)) % 4
+          ];
+          // Reorient the pan vector to keep the same fractional model point centered.
+          const reorient = (point: { x: number; y: number }) =>
+            orientProjected(
+              orientProjected(point, inverseOrientation(state.viewOrientation)),
+              viewOrientation
+            );
+          const scroll = {
+            position: reorient(state.scroll.position),
+            offset: reorient(state.scroll.offset)
+          };
+          const rendererSize = state.rendererEl?.getBoundingClientRect();
+          const tile = rendererSize
+            ? screenToIso({
+                mouse: state.mouse.position.screen,
+                zoom: state.zoom,
+                scroll,
+                rendererSize,
+                viewOrientation
+              })
+            : state.mouse.position.tile;
+
+          set({
+            viewOrientation,
+            scroll,
+            mouse: {
+              position: { screen: state.mouse.position.screen, tile },
+              delta: null,
+              mousedown: null
+            },
+            // The outline is cached in screen coordinates; retain model-space selection.
+            ...(state.mode.type === 'FREEHAND_LASSO'
+              ? { mode: { ...state.mode, path: [] } }
+              : {})
+          });
+        },
         setView: (view) => {
           set({ view });
         },
@@ -63,7 +117,8 @@ const initialState = () => {
               offset: CoordsUtils.zero()
             },
             itemControls: null,
-            zoom: 1
+            zoom: 1,
+            viewOrientation: 'NE'
           });
         },
         setMode: (mode) => {

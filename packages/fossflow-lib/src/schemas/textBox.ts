@@ -1,5 +1,8 @@
 import { z } from 'zod';
-import { ProjectionOrientationEnum } from 'src/types/common';
+import {
+  ProjectionOrientationEnum,
+  TextOrientationEnum
+} from 'src/types/common';
 import { id, coords, constrainedStrings } from './common';
 
 export const textBoxSchema = z.object({
@@ -11,6 +14,12 @@ export const textBoxSchema = z.object({
     .union([
       z.literal(ProjectionOrientationEnum.X),
       z.literal(ProjectionOrientationEnum.Y)
+    ])
+    .optional(),
+  textOrientation: z
+    .union([
+      z.literal(TextOrientationEnum.SCREEN),
+      z.literal(TextOrientationEnum.FOLLOW_PLANE)
     ])
     .optional()
 });

@@ -43,6 +43,7 @@ export const useScene = () => {
       }),
       shallow
     );
+  const viewOrientation = useUiStateStore(state => state.viewOrientation);
   const currentViewId = useUiStateStore((state) => state.view);
   const transactionInProgress = useRef(false);
 
@@ -509,6 +510,7 @@ export const useScene = () => {
   }
 
   return {
+    viewOrientation,
     items: itemsList,
     connectors: connectorsList,
     colors: colorsList,

@@ -18,6 +18,11 @@ export const ProjectionOrientationEnum = {
   Y: 'Y'
 } as const;
 
+export const TextOrientationEnum = {
+  SCREEN: 'SCREEN',
+  FOLLOW_PLANE: 'FOLLOW_PLANE'
+} as const;
+
 export type BoundingBox = [Coords, Coords, Coords, Coords];
 
 export type SlimMouseEvent = Pick<
