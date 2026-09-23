@@ -1,9 +1,21 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { Slider, Box, TextField } from '@mui/material';
+import {
+  Slider,
+  Box,
+  TextField,
+  FormControlLabel,
+  Switch,
+  Typography
+} from '@mui/material';
 import { ModelItem, ViewItem } from 'src/types';
 import { RichTextEditor } from 'src/components/RichTextEditor/RichTextEditor';
 import { useModelItem } from 'src/hooks/useModelItem';
 import { useModelStore } from 'src/stores/modelStore';
+import { useUiStateStore } from 'src/stores/uiStateStore';
+import {
+  labelOpacityToPercent,
+  labelPercentToOpacity
+} from 'src/utils/labelOpacity';
 import { DeleteButton } from '../../components/DeleteButton';
 import { Section } from '../../components/Section';
 
@@ -28,6 +40,11 @@ export const NodeSettings = ({
   const modelItem = useModelItem(node.id);
   const modelActions = useModelStore((state) => state.actions);
   const icons = useModelStore((state) => state.icons);
+  const globalBackgroundOpacity = useUiStateStore(
+    (state) => state.labelSettings.backgroundOpacity
+  );
+  const useGlobalBackgroundOpacity =
+    node.labelBackgroundOpacity === undefined;
   
   // Local state for smooth slider interaction
   const currentIcon = icons.find(icon => icon.id === modelItem?.icon);
@@ -110,6 +127,48 @@ export const NodeSettings = ({
           />
         </Section>
       )}
+      <Section title="Label background">
+        <FormControlLabel
+          control={
+            <Switch
+              checked={useGlobalBackgroundOpacity}
+              onChange={(e) => {
+                if (e.target.checked) {
+                  onViewItemUpdated({ labelBackgroundOpacity: undefined });
+                } else {
+                  onViewItemUpdated({
+                    labelBackgroundOpacity: globalBackgroundOpacity ?? 1
+                  });
+                }
+              }}
+            />
+          }
+          label="Use global opacity"
+        />
+        {!useGlobalBackgroundOpacity && (
+          <Slider
+            marks
+            step={1}
+            min={0}
+            max={100}
+            value={labelOpacityToPercent(node.labelBackgroundOpacity)}
+            valueLabelDisplay="auto"
+            valueLabelFormat={(value) => `${value}%`}
+            onChange={(e, newOpacity) => {
+              onViewItemUpdated({
+                labelBackgroundOpacity: labelPercentToOpacity(
+                  newOpacity as number
+                )
+              });
+            }}
+          />
+        )}
+        <Typography variant="caption" color="text.secondary">
+          {useGlobalBackgroundOpacity
+            ? `Using global (${labelOpacityToPercent(globalBackgroundOpacity)}%)`
+            : `Custom: ${labelOpacityToPercent(node.labelBackgroundOpacity)}%`}
+        </Typography>
+      </Section>
 
       <Section title="Icon size">
         <Slider

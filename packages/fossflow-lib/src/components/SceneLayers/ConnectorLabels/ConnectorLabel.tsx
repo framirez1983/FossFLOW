@@ -1,3 +1,5 @@
+import { useUiStateStore } from 'src/stores/uiStateStore';
+import { orientProjected } from 'src/utils/viewOrientation';
 import React, { useMemo, memo } from 'react';
 import { Box, Typography } from '@mui/material';
 import { useScene } from 'src/hooks/useScene';
@@ -12,6 +14,7 @@ import { getGroupOffset } from 'src/utils/connectorGroups';
 import { PROJECTED_TILE_SIZE, UNPROJECTED_TILE_SIZE } from 'src/config';
 import { Label } from 'src/components/Label/Label';
 import { ConnectorLabel as ConnectorLabelType } from 'src/types';
+import { resolveConnectorLabelBackgroundOpacity } from 'src/utils/labelOpacity';
 
 /**
  * Calculate the perpendicular unit vector at a point along a tile path.
@@ -50,6 +53,10 @@ interface Props {
 }
 
 export const ConnectorLabel = memo(({ connector: sceneConnector, groupIndex = 0, groupTotal = 1 }: Props) => {
+  const viewOrientation = useUiStateStore(state => state.viewOrientation);
+  const globalBackgroundOpacity = useUiStateStore(
+    (state) => state.labelSettings.backgroundOpacity
+  );
   const connector = useConnector(sceneConnector.id);
 
   const labels = useMemo(() => {
@@ -117,7 +124,7 @@ export const ConnectorLabel = memo(({ connector: sceneConnector, groupIndex = 0,
           }
         }
 
-        return { label, position };
+        return { label, position: orientProjected(position, viewOrientation) };
       })
       .filter(
         (
@@ -129,7 +136,7 @@ export const ConnectorLabel = memo(({ connector: sceneConnector, groupIndex = 0,
           return item !== null;
         }
       );
-  }, [labels, sceneConnector.path, connector?.lineType, connector?.width, groupIndex, groupTotal]);
+  }, [labels, sceneConnector.path, connector?.lineType, connector?.width, groupIndex, groupTotal, viewOrientation]);
 
   return (
     <>
@@ -148,12 +155,15 @@ export const ConnectorLabel = memo(({ connector: sceneConnector, groupIndex = 0,
               maxWidth={150}
               labelHeight={label.height || 0}
               showLine={label.showLine !== false}
+              backgroundColor="background.paper"
+              backgroundOpacity={resolveConnectorLabelBackgroundOpacity(
+                label.backgroundOpacity,
+                globalBackgroundOpacity
+              )}
               sx={{
                 py: 0.75,
                 px: 1,
-                borderRadius: 2,
-                backgroundColor: 'background.paper',
-                opacity: 0.95
+                borderRadius: 2
               }}
             >
               <Typography color="text.secondary" variant="body2">

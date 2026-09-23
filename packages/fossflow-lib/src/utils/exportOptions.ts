@@ -1,6 +1,7 @@
 import domtoimage from 'dom-to-image-more';
 import FileSaver from 'file-saver';
 import { Model, Size } from '../types';
+import { clampLabelBackgroundOpacity } from './labelOpacity';
 import { icons as availableIcons } from '../examples/initialData';
 
 export const generateGenericFilename = (extension: string) => {
@@ -50,13 +51,44 @@ export const transformToCompactFormat = (model: Model) => {
   const compactViews = views.map((view) => {
     const positions = view.items.map((viewItem) => {
       const itemIndex = items.findIndex(item => item.id === viewItem.id);
-      return [itemIndex, viewItem.tile.x, viewItem.tile.y];
+      const pos: number[] = [itemIndex, viewItem.tile.x, viewItem.tile.y];
+      // Optional 4th element: per-label background opacity override.
+      // Omitted when undefined (= Use global), so old and override-free output is unchanged.
+      if (viewItem.labelBackgroundOpacity !== undefined) {
+        pos.push(viewItem.labelBackgroundOpacity);
+      }
+      return pos;
     });
 
     const connections = view.connectors?.map((connector) => {
       const fromIndex = items.findIndex(item => item.id === connector.anchors[0]?.ref.item);
       const toIndex = items.findIndex(item => item.id === connector.anchors[connector.anchors.length - 1]?.ref.item);
-      return [fromIndex, toIndex];
+      const conn: Array<number | Array<Array<string | number>>> = [fromIndex, toIndex];
+      // Optional 3rd element: connector labels, carried so per-label opacity
+      // overrides have a host. Omitted when the connector has no labels.
+      // Per label: [text, position, height?, backgroundOpacity?], trailing
+      // optionals omitted when undefined.
+      if (connector.labels && connector.labels.length > 0) {
+        conn.push(
+          connector.labels.map((label) => {
+            const compactLabel: Array<string | number> = [
+              label.text,
+              label.position
+            ];
+            if (
+              label.height !== undefined ||
+              label.backgroundOpacity !== undefined
+            ) {
+              compactLabel.push(label.height ?? 0);
+            }
+            if (label.backgroundOpacity !== undefined) {
+              compactLabel.push(label.backgroundOpacity);
+            }
+            return compactLabel;
+          })
+        );
+      }
+      return conn;
     }).filter(conn => conn[0] !== -1 && conn[1] !== -1) || [];
 
     return [positions, connections];
@@ -116,15 +148,58 @@ export const transformFromCompactFormat = (compactModel: any): Model => {
 
     const viewItems = positions.map((pos: any) => {
       const [itemIndex, x, y] = pos;
-      return {
+      const viewItem: {
+        id: string;
+        tile: { x: number; y: number };
+        labelHeight: number;
+        labelBackgroundOpacity?: number;
+      } = {
         id: `item_${itemIndex}`,
         tile: { x, y },
         labelHeight: 80
       };
+      // 4th element is optional; missing means Use global (old compact files).
+      if (typeof pos[3] === 'number') {
+        viewItem.labelBackgroundOpacity = clampLabelBackgroundOpacity(pos[3]);
+      }
+      return viewItem;
     });
 
     const connectors = connections.map((conn: any, connIndex: number) => {
       const [fromIndex, toIndex] = conn;
+      const labels = Array.isArray(conn[2])
+        ? conn[2]
+            .filter(
+              (compactLabel: any) =>
+                Array.isArray(compactLabel) &&
+                typeof compactLabel[0] === 'string' &&
+                typeof compactLabel[1] === 'number'
+            )
+            .map((compactLabel: any, labelIndex: number) => {
+              const label: {
+                id: string;
+                text: string;
+                position: number;
+                height?: number;
+                backgroundOpacity?: number;
+              } = {
+                id: `label_${viewIndex}_${connIndex}_${labelIndex}`,
+                text: String(compactLabel[0]).substring(0, 1000),
+                position: Number.isFinite(compactLabel[1])
+                  ? Math.min(100, Math.max(0, compactLabel[1]))
+                  : 50
+              };
+              if (typeof compactLabel[2] === 'number') {
+                label.height = compactLabel[2];
+              }
+              if (typeof compactLabel[3] === 'number') {
+                label.backgroundOpacity = clampLabelBackgroundOpacity(
+                  compactLabel[3]
+                );
+              }
+              return label;
+            })
+        : [];
       return {
         id: `conn_${viewIndex}_${connIndex}`,
         color: 'color1',
@@ -134,7 +209,8 @@ export const transformFromCompactFormat = (compactModel: any): Model => {
         ],
         width: 10,
         description: '',
-        style: 'SOLID'
+        style: 'SOLID',
+        ...(labels.length > 0 ? { labels } : {})
       };
     });
 

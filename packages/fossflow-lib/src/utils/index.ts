@@ -11,3 +11,4 @@ export * from './connectorLabels';
 export * from './copyPaste';
 export * from './connectorGroups';
 export * from './clickStopperProps';
+export * from './labelOpacity';

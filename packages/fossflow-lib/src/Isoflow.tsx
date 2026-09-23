@@ -10,7 +10,7 @@ import { LocaleProvider } from 'src/stores/localeStore';
 import { GlobalStyles } from 'src/styles/GlobalStyles';
 import { Renderer } from 'src/components/Renderer/Renderer';
 import { UiOverlay } from 'src/components/UiOverlay/UiOverlay';
-import { UiStateProvider, useUiStateStore } from 'src/stores/uiStateStore';
+import { UiStateProvider, useUiStateStore, useUiStateStoreApi } from 'src/stores/uiStateStore';
 import { INITIAL_DATA, MAIN_MENU_OPTIONS } from 'src/config';
 import { useInitialDataManager } from 'src/hooks/useInitialDataManager';
 import enUS from 'src/i18n/en-US';
@@ -30,6 +30,7 @@ const App = ({
   const uiStateActions = useUiStateStore((state) => {
     return state.actions;
   });
+  const uiStateStoreApi = useUiStateStoreApi();
   const initialDataManager = useInitialDataManager();
   const model = useModelStore((state) => {
     return modelFromModelStore(state);
@@ -67,6 +68,16 @@ const App = ({
       uiStateActions.setExpandLabels(renderer.expandLabels);
     }
   }, [renderer?.expandLabels, uiStateActions]);
+
+  useEffect(() => {
+    if (renderer?.labelBackgroundOpacity !== undefined) {
+      const { labelSettings } = uiStateStoreApi.getState();
+      uiStateActions.setLabelSettings({
+        ...labelSettings,
+        backgroundOpacity: renderer.labelBackgroundOpacity
+      });
+    }
+  }, [renderer?.labelBackgroundOpacity, uiStateActions, uiStateStoreApi]);
 
   // Use useLayoutEffect to set iconPackManager synchronously before paint
   // This prevents a race condition where the Settings dialog could open

@@ -58,6 +58,9 @@ export const ExportImageDialog = ({ onClose, quality = 1.5 }: Props) => {
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState<Coords | null>(null);
   const currentView = useUiStateStore((state) => state.view);
+  const labelBackgroundOpacity = useUiStateStore(
+    (state) => state.labelSettings.backgroundOpacity
+  );
   const [imageData, setImageData] = React.useState<string>();
   const [svgData, setSvgData] = useState<string>();
   const [croppedImageData, setCroppedImageData] = useState<string>();
@@ -395,7 +398,7 @@ export const ExportImageDialog = ({ onClose, quality = 1.5 }: Props) => {
       }, 200);
       return () => clearTimeout(timer);
     }
-  }, [showGrid, backgroundColor, expandLabels, exportImage, cropToContent, exportScale, transparentBackground]);
+  }, [showGrid, backgroundColor, expandLabels, labelBackgroundOpacity, exportImage, cropToContent, exportScale, transparentBackground]);
 
   useEffect(() => {
     if (!imageData) {
@@ -482,7 +485,8 @@ export const ExportImageDialog = ({ onClose, quality = 1.5 }: Props) => {
                       renderer={{
                         showGrid,
                         backgroundColor,
-                        expandLabels
+                        expandLabels,
+                        labelBackgroundOpacity
                       }}
                     />
                   </DOMErrorBoundary>

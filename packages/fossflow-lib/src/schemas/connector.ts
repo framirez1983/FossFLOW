@@ -10,7 +10,8 @@ export const connectorLabelSchema = z.object({
   position: z.number().min(0).max(100), // Percentage along the path (0-100)
   height: z.number().optional(), // Vertical offset
   line: z.enum(['1', '2']).optional(), // Which line for double line types (defaults to '1')
-  showLine: z.boolean().optional() // Show the dotted line connecting label to connector (defaults to true)
+  showLine: z.boolean().optional(), // Show the dotted line connecting label to connector (defaults to true)
+  backgroundOpacity: z.number().min(0).max(1).optional() // Label background fill opacity 0-1 (undefined = use global)
 });
 
 export const anchorSchema = z.object({

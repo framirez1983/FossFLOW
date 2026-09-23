@@ -5,9 +5,11 @@ import { Gradient } from 'src/components/Gradient/Gradient';
 import { ExpandButton } from './ExpandButton';
 import { Label, Props as LabelProps } from './Label';
 import { useUiStateStore } from 'src/stores/uiStateStore';
+import { resolveLabelBackgroundOpacity } from 'src/utils/labelOpacity';
 
-type Props = Omit<LabelProps, 'maxHeight'> & {
+type Props = Omit<LabelProps, 'maxHeight' | 'backgroundOpacity' | 'backgroundColor'> & {
   onToggleExpand?: (isExpanded: boolean) => void;
+  backgroundOpacity?: number;
 };
 
 const STANDARD_LABEL_HEIGHT = 80;
@@ -15,11 +17,16 @@ const STANDARD_LABEL_HEIGHT = 80;
 export const ExpandableLabel = ({
   children,
   onToggleExpand,
+  backgroundOpacity,
   ...rest
 }: Props) => {
   const forceExpandLabels = useUiStateStore((state) => state.expandLabels);
   const editorMode = useUiStateStore((state) => state.editorMode);
   const labelSettings = useUiStateStore((state) => state.labelSettings);
+  const effectiveBackgroundOpacity = resolveLabelBackgroundOpacity(
+    backgroundOpacity,
+    labelSettings.backgroundOpacity
+  );
   const [isExpanded, setIsExpanded] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
   const { observe, size: contentSize } = useResizeObserver();
@@ -63,6 +70,7 @@ export const ExpandableLabel = ({
       {...rest}
       maxHeight={containerMaxHeight}
       maxWidth={effectiveExpanded ? rest.maxWidth * 1.5 : rest.maxWidth}
+      backgroundOpacity={effectiveBackgroundOpacity}
     >
       <Box
         ref={contentRef}
@@ -81,6 +89,7 @@ export const ExpandableLabel = ({
 
         {isContentTruncated && (
           <Gradient
+            backgroundOpacity={effectiveBackgroundOpacity}
             sx={{
               position: 'absolute',
               width: '100%',

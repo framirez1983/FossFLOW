@@ -1,3 +1,4 @@
+import { useUiStateStore } from 'src/stores/uiStateStore';
 import React, { useMemo, memo } from 'react';
 import { Box, Typography, Stack } from '@mui/material';
 import {
@@ -18,15 +19,17 @@ interface Props {
 }
 
 export const Node = memo(({ node, order }: Props) => {
+  const viewOrientation = useUiStateStore(state => state.viewOrientation);
   const modelItem = useModelItem(node.id);
-  const { iconComponent } = useIcon(modelItem?.icon);
+  const { iconComponent } = useIcon(modelItem?.icon, viewOrientation);
 
   const position = useMemo(() => {
     return getTilePosition({
       tile: node.tile,
+      viewOrientation,
       origin: 'BOTTOM'
     });
-  }, [node.tile]);
+  }, [node.tile, viewOrientation]);
 
   const description = useMemo(() => {
     if (
@@ -67,6 +70,7 @@ export const Node = memo(({ node, order }: Props) => {
               maxWidth={250}
               expandDirection="BOTTOM"
               labelHeight={node.labelHeight ?? DEFAULT_LABEL_HEIGHT}
+              backgroundOpacity={node.labelBackgroundOpacity}
             >
               <Stack spacing={1}>
                 {modelItem.name && (

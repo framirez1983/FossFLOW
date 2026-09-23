@@ -41,7 +41,9 @@ export const VIEW_DEFAULTS: Required<
   textBoxes: []
 };
 
-export const VIEW_ITEM_DEFAULTS: Required<Omit<ViewItem, 'id' | 'tile'>> = {
+export const VIEW_ITEM_DEFAULTS: Required<
+  Omit<ViewItem, 'id' | 'tile' | 'labelBackgroundOpacity'>
+> = {
   labelHeight: 80
 };
 
@@ -68,7 +70,8 @@ export const CONNECTOR_SEARCH_OFFSET = { x: 1, y: 1 };
 export const TEXTBOX_DEFAULTS: Required<Omit<TextBox, 'id' | 'tile'>> = {
   orientation: 'X',
   fontSize: 0.6,
-  content: 'Text'
+  content: 'Text',
+  textOrientation: 'SCREEN'
 };
 
 export const TEXTBOX_PADDING = 0.2;

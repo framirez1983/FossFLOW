@@ -29,6 +29,10 @@ import {
   Delete as DeleteIcon
 } from '@mui/icons-material';
 import { getConnectorLabels, generateId } from 'src/utils';
+import {
+  labelOpacityToPercent,
+  labelPercentToOpacity
+} from 'src/utils/labelOpacity';
 import { ControlsContainer } from '../components/ControlsContainer';
 import { Section } from '../components/Section';
 import { DeleteButton } from '../components/DeleteButton';
@@ -44,6 +48,9 @@ export const ConnectorControls = ({ id, embedded }: Props) => {
   });
   const connector = useConnector(id);
   const { updateConnector, deleteConnector } = useScene();
+  const globalBackgroundOpacity = useUiStateStore(
+    (state) => state.labelSettings.backgroundOpacity
+  );
   const [useCustomColor, setUseCustomColor] = useState(
     !!connector?.customColor
   );
@@ -258,6 +265,57 @@ export const ConnectorControls = ({ id, embedded }: Props) => {
                       }
                       label="Show Dotted Line"
                     />
+                  </Box>
+
+                  <Box sx={{ mt: 1 }}>
+                    <FormControlLabel
+                      control={
+                        <Switch
+                          checked={label.backgroundOpacity === undefined}
+                          onChange={(e) => {
+                            return handleUpdateLabel(label.id, {
+                              backgroundOpacity: e.target.checked
+                                ? undefined
+                                : (globalBackgroundOpacity ?? 1)
+                            });
+                          }}
+                        />
+                      }
+                      label="Use global background opacity"
+                    />
+                    {label.backgroundOpacity !== undefined && (
+                      <>
+                        <Typography variant="caption" color="text.secondary">
+                          Background opacity
+                        </Typography>
+                        <Slider
+                          marks
+                          step={1}
+                          min={0}
+                          max={100}
+                          value={labelOpacityToPercent(label.backgroundOpacity)}
+                          valueLabelDisplay="auto"
+                          valueLabelFormat={(value) => `${value}%`}
+                          onChange={(e, value) => {
+                            return handleUpdateLabel(label.id, {
+                              backgroundOpacity: labelPercentToOpacity(
+                                value as number
+                              )
+                            });
+                          }}
+                        />
+                      </>
+                    )}
+                    {label.backgroundOpacity === undefined && (
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        sx={{ display: 'block' }}
+                      >
+                        Using global (
+                        {labelOpacityToPercent(globalBackgroundOpacity)}%)
+                      </Typography>
+                    )}
                   </Box>
                 </Paper>
               );

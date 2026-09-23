@@ -1,5 +1,7 @@
 import React, { useRef } from 'react';
 import { Box, SxProps } from '@mui/material';
+import { alpha } from '@mui/material/styles';
+import { clampLabelBackgroundOpacity } from 'src/utils/labelOpacity';
 
 const CONNECTOR_DOT_SIZE = 3;
 
@@ -11,6 +13,8 @@ export interface Props {
   children: React.ReactNode;
   sx?: SxProps;
   showLine?: boolean;
+  backgroundOpacity?: number;
+  backgroundColor?: string;
 }
 
 export const Label = ({
@@ -20,9 +24,12 @@ export const Label = ({
   expandDirection = 'CENTER',
   labelHeight = 0,
   sx,
-  showLine = true
+  showLine = true,
+  backgroundOpacity = 1,
+  backgroundColor = 'common.white'
 }: Props) => {
   const contentRef = useRef<HTMLDivElement>(null);
+  const fillOpacity = clampLabelBackgroundOpacity(backgroundOpacity);
 
   return (
     <Box
@@ -61,7 +68,13 @@ export const Label = ({
         sx={{
           position: 'absolute',
           display: 'inline-block',
-          bgcolor: 'common.white',
+          backgroundColor: (theme) => {
+            const base =
+              backgroundColor === 'background.paper'
+                ? theme.palette.background.paper
+                : theme.palette.common.white;
+            return alpha(base, fillOpacity);
+          },
           border: '1px solid',
           borderColor: 'grey.400',
           borderRadius: 2,

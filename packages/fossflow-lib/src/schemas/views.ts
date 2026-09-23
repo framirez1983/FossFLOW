@@ -7,7 +7,8 @@ import { textBoxSchema } from './textBox';
 export const viewItemSchema = z.object({
   id,
   tile: coords,
-  labelHeight: z.number().optional()
+  labelHeight: z.number().optional(),
+  labelBackgroundOpacity: z.number().min(0).max(1).optional()
 });
 
 export const viewSchema = z.object({
