@@ -10,7 +10,6 @@ COPY packages/fossflow-lib/package*.json ./packages/fossflow-lib/
 COPY packages/fossflow-app/package*.json ./packages/fossflow-app/
 
 #Update NPM
-RUN npm install -g npm@11.5.2
 
 # Install dependencies for the entire workspace
 RUN npm install
