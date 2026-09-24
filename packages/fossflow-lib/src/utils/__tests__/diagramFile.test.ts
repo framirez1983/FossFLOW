@@ -1,4 +1,9 @@
-import { parseDiagramFileUpload } from '../diagramFile';
+import {
+  parseDiagramFileUpload,
+  DIAGRAM_FILE_EXTENSION,
+  LEGACY_DIAGRAM_FILE_EXTENSION,
+  DIAGRAM_FILE_ACCEPT
+} from '../diagramFile';
 
 const validModel = {
   title: 'Uploaded',
@@ -16,6 +21,11 @@ const validModel = {
 };
 
 describe('parseDiagramFileUpload', () => {
+  it('exposes canonical and legacy extensions with a joint accept value', () => {
+    expect(DIAGRAM_FILE_EXTENSION).toBe('fossflow');
+    expect(LEGACY_DIAGRAM_FILE_EXTENSION).toBe('json');
+    expect(DIAGRAM_FILE_ACCEPT).toBe('.fossflow,.json');
+  });
   it('accepts a valid Full JSON model', () => {
     const result = parseDiagramFileUpload(JSON.stringify(validModel));
 

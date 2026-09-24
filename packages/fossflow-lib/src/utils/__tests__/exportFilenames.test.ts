@@ -1,4 +1,5 @@
 import { generateExportFilename } from '../exportOptions';
+import { DIAGRAM_FILE_EXTENSION } from '../diagramFile';
 
 describe('generateExportFilename', () => {
   it('builds Project-View-date filenames with local time', () => {
@@ -105,6 +106,17 @@ describe('generateExportFilename', () => {
         at
       })
     ).toBe('A B Project-20260924-1416.json');
+  });
+
+  it('uses the canonical project extension for Full JSON exports', () => {
+    const at = new Date(2026, 8, 24, 14, 16);
+
+    expect(
+      generateExportFilename(DIAGRAM_FILE_EXTENSION, {
+        projectTitle: 'S4OPTIK',
+        at
+      })
+    ).toBe('S4OPTIK-20260924-1416.fossflow');
   });
 
   it('leaves PNG/SVG view naming unchanged', () => {

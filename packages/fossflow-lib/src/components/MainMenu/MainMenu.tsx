@@ -16,6 +16,7 @@ import { UiElement } from 'src/components/UiElement/UiElement';
 import { IconButton } from 'src/components/IconButton/IconButton';
 import { useUiStateStore } from 'src/stores/uiStateStore';
 import { exportAsJSON } from 'src/utils/exportOptions';
+import { DIAGRAM_FILE_ACCEPT } from 'src/utils/diagramFile';
 import { modelFromModelStore } from 'src/utils';
 import { useInitialDataManager } from 'src/hooks/useInitialDataManager';
 import { useModelStore } from 'src/stores/modelStore';
@@ -60,7 +61,7 @@ export const MainMenu = () => {
   const onOpenModel = useCallback(async () => {
     const fileInput = document.createElement('input');
     fileInput.type = 'file';
-    fileInput.accept = 'application/json';
+    fileInput.accept = DIAGRAM_FILE_ACCEPT;
 
     fileInput.onchange = async (event) => {
       const file = (event.target as HTMLInputElement).files?.[0];

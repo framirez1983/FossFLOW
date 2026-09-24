@@ -1,6 +1,7 @@
 import domtoimage from 'dom-to-image-more';
 import FileSaver from 'file-saver';
 import { Model, Size } from '../types';
+import { DIAGRAM_FILE_EXTENSION } from './diagramFile';
 
 export interface ExportFilenameContext {
   projectTitle?: string;
@@ -141,7 +142,9 @@ export const exportAsJSON = (model: Model) => {
 
   downloadFile(
     data,
-    generateExportFilename('json', { projectTitle: model.title })
+    generateExportFilename(DIAGRAM_FILE_EXTENSION, {
+      projectTitle: model.title
+    })
   );
 };
 

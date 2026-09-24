@@ -7,6 +7,11 @@ export * from 'src/schemas';
 export { generateExportFilename } from 'src/utils/exportOptions';
 export type { ExportFilenameContext } from 'src/utils/exportOptions';
 export { parseDiagramFileUpload } from 'src/utils/diagramFile';
+export {
+  DIAGRAM_FILE_EXTENSION,
+  LEGACY_DIAGRAM_FILE_EXTENSION,
+  DIAGRAM_FILE_ACCEPT
+} from 'src/utils/diagramFile';
 export type { DiagramFileUploadResult } from 'src/utils/diagramFile';
 export type { IsoflowProps, InitialData } from 'src/types';
 export * from 'src/types/model';

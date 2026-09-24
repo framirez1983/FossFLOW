@@ -13,6 +13,10 @@ import {
   mergeDiagramData,
   extractSavableData
 } from './diagramUtils';
+import {
+  generateExportFilename,
+  DIAGRAM_FILE_EXTENSION
+} from 'fossflow';
 import { StorageManager } from './StorageManager';
 import { DiagramManager } from './components/DiagramManager';
 import { storageManager } from './services/storageService';
@@ -583,7 +587,9 @@ function EditorPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${diagramName || 'diagram'}-${new Date().toISOString().split('T')[0]}.json`;
+    a.download = generateExportFilename(DIAGRAM_FILE_EXTENSION, {
+      projectTitle: diagramName || modelToExport.title
+    });
     a.click();
     URL.revokeObjectURL(url);
 

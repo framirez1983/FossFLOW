@@ -8,7 +8,7 @@ const locale: LocaleProps = {
     undo: "撤销",
     redo: "重做", 
     open: "打开",
-    exportJson: "导出为 JSON",
+    exportJson: "导出为 FossFLOW 文件",
     exportImage: "导出为图片",
     clearCanvas: "清空画布",
     settings: "设置",

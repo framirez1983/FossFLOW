@@ -8,7 +8,7 @@ const locale: LocaleProps = {
     undo: "Cofnij",
     redo: "Ponów", 
     open: "Otwórz",
-    exportJson: "Eksportuj do JSON",
+    exportJson: "Eksportuj do pliku FossFLOW",
     exportImage: "Eksportuj do obrazu",
     clearCanvas: "Wyczyść obszar roboczy",
     settings: "Ustawienia",

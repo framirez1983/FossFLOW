@@ -8,7 +8,7 @@ const locale: LocaleProps = {
     undo: "Geri Al",
     redo: "Yinele", 
     open: "Aç",
-    exportJson: "JSON olarak dışa aktar",
+    exportJson: "FossFLOW dosyası olarak dışa aktar",
     exportImage: "Görüntü olarak dışa aktar",
     clearCanvas: "Tuvali temizle",
     settings: "Ayarlar",

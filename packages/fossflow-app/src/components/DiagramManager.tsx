@@ -2,7 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { storageManager, DiagramInfo } from '../services/storageService';
 import {
   generateExportFilename,
-  parseDiagramFileUpload
+  parseDiagramFileUpload,
+  DIAGRAM_FILE_EXTENSION,
+  DIAGRAM_FILE_ACCEPT
 } from 'fossflow';
 import './DiagramManager.css';
 
@@ -112,7 +114,7 @@ export const DiagramManager: React.FC<Props> = ({
       const storage = storageManager.getStorage();
       const data = await storage.loadDiagram(id);
 
-      const filename = generateExportFilename('json', {
+      const filename = generateExportFilename(DIAGRAM_FILE_EXTENSION, {
         projectTitle:
           (data as any)?.name || (data as any)?.title || fallbackName
       });
@@ -278,7 +280,7 @@ export const DiagramManager: React.FC<Props> = ({
           <input
             ref={fileInputRef}
             type="file"
-            accept=".json"
+            accept={DIAGRAM_FILE_ACCEPT}
             style={{ display: 'none' }}
             onChange={handleUploadFile}
           />

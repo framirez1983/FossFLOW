@@ -1,6 +1,18 @@
 import { modelSchema } from '../schemas/model';
 import type { Model } from '../types';
 
+/**
+ * Canonical editable document extension for FossFLOW diagrams.
+ * The payload remains plain JSON; the extension is product identity.
+ */
+export const DIAGRAM_FILE_EXTENSION = 'fossflow';
+
+/** Legacy extension, still accepted on open/import/upload. */
+export const LEGACY_DIAGRAM_FILE_EXTENSION = 'json';
+
+/** File-picker accept value covering canonical + legacy formats. */
+export const DIAGRAM_FILE_ACCEPT = `.${DIAGRAM_FILE_EXTENSION},.${LEGACY_DIAGRAM_FILE_EXTENSION}`;
+
 export type DiagramFileUploadResult =
   | { ok: true; model: Model }
   | { ok: false; error: string };

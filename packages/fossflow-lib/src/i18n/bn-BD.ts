@@ -8,7 +8,7 @@ const locale: LocaleProps = {
     undo: "পূর্বাবস্থায় ফেরান",
     redo: "পুনরায় করুন",
     open: "খুলুন",
-    exportJson: "JSON হিসাবে রপ্তানি করুন",
+    exportJson: "FossFLOW ফাইল হিসাবে রপ্তানি করুন",
     exportImage: "ছবি হিসাবে রপ্তানি করুন",
     clearCanvas: "ক্যানভাস পরিষ্কার করুন",
     settings: "সেটিংস",

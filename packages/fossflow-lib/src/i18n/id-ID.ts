@@ -8,7 +8,7 @@ const locale: LocaleProps = {
     undo: "Batalkan",
     redo: "Ulangi", 
     open: "Buka",
-    exportJson: "Ekspor sebagai JSON",
+    exportJson: "Ekspor sebagai file FossFLOW",
     exportImage: "Ekspor sebagai gambar",
     clearCanvas: "Bersihkan kanvas",
     settings: "Pengaturan",
