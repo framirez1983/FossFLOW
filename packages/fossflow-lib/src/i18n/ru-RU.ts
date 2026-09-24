@@ -9,7 +9,6 @@ const locale: LocaleProps = {
     redo: "Повторить",
     open: "Открыть",
     exportJson: "Экспортировать как JSON",
-    exportCompactJson: "Экспортировать как компактный JSON",
     exportImage: "Экспортировать как изображение",
     clearCanvas: "Очистить холст",
     settings: "Настройки",

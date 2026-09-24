@@ -1,11 +1,107 @@
 import domtoimage from 'dom-to-image-more';
 import FileSaver from 'file-saver';
 import { Model, Size } from '../types';
-import { clampLabelBackgroundOpacity } from './labelOpacity';
-import { icons as availableIcons } from '../examples/initialData';
 
-export const generateGenericFilename = (extension: string) => {
-  return `fossflow-export-${new Date().toISOString()}.${extension}`;
+export interface ExportFilenameContext {
+  projectTitle?: string;
+  viewName?: string;
+  at?: Date;
+}
+
+const sanitizeFilenameSegment = (
+  value: string | undefined,
+  fallback: string
+): string => {
+  const cleaned = (value ?? '')
+    // eslint-disable-next-line no-control-regex
+    .replace(/[\\/:*?"<>|\x00-\x1F]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/\.+$/g, '');
+  return cleaned.length > 0 ? cleaned : fallback;
+};
+
+const toLocalStamp = (at: Date): string => {
+  const pad = (value: number): string => {
+    return String(value).padStart(2, '0');
+  };
+  return `${at.getFullYear()}${pad(at.getMonth() + 1)}${pad(at.getDate())}-${pad(at.getHours())}${pad(at.getMinutes())}`;
+};
+
+/**
+ * Shared export filename builder using the browser's local date/time.
+ * - With a view name: `<Project>-<View>-<YYYYMMDD>-<HHmm>.<ext>` (PNG/SVG).
+ * - Without one: `<Project>-<YYYYMMDD>-<HHmm>.<ext>` (Full JSON, which
+ *   already contains every view).
+ * Segments are sanitized for safe filenames while keeping human-readable
+ * spaces.
+ */
+export const generateExportFilename = (
+  extension: string,
+  context?: ExportFilenameContext
+): string => {
+  const project = sanitizeFilenameSegment(context?.projectTitle, 'Untitled');
+  const stamp = toLocalStamp(context?.at ?? new Date());
+  const rawView = context?.viewName;
+  if (rawView === undefined) {
+    return `${project}-${stamp}.${extension}`;
+  }
+  const view = sanitizeFilenameSegment(rawView, 'View');
+  return `${project}-${view}-${stamp}.${extension}`;
+};
+
+/**
+ * Wait until the hidden export tree is safe to snapshot: webfonts settled,
+ * layout/paint flushed, and the container actually laid out. Every bound is a
+ * fallback cap so a stalled resource can delay but never hang an export;
+ * the mechanism itself is deterministic (font + paint readiness), not a
+ * fixed sleep.
+ */
+export const ensureExportSnapshotReady = async (
+  el: HTMLDivElement,
+  timeoutMs: number = 2500
+): Promise<void> => {
+  const timeout = (ms: number) => {
+    return new Promise<void>((resolve) => {
+      setTimeout(resolve, ms);
+    });
+  };
+  const nextFrame = () => {
+    return new Promise<void>((resolve) => {
+      if (typeof requestAnimationFrame !== 'undefined') {
+        requestAnimationFrame(() => {
+          resolve();
+        });
+      } else {
+        resolve();
+      }
+    });
+  };
+
+  try {
+    if (
+      typeof document !== 'undefined' &&
+      typeof document.fonts !== 'undefined' &&
+      document.fonts?.ready
+    ) {
+      await Promise.race([document.fonts.ready, timeout(timeoutMs)]);
+    }
+  } catch {
+    // Font readiness must never block an export.
+  }
+
+  // Flush layout/paint of the freshly mounted tree.
+  await nextFrame();
+  await nextFrame();
+
+  // The export container has an explicit pixel size: if it still measures
+  // zero, layout has not run yet — poll briefly, then proceed regardless.
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    const rect = el.getBoundingClientRect();
+    if (rect.width > 0 && rect.height > 0) break;
+    await timeout(50);
+  }
 };
 
 export const base64ToBlob = (
@@ -38,217 +134,15 @@ export const downloadFile = (data: Blob, filename: string) => {
   FileSaver.saveAs(data, filename);
 };
 
-export const transformToCompactFormat = (model: Model) => {
-  const { items, views, icons, title } = model;
-
-  // Compact format: ultra-minimal for LLM generation
-  const compactItems = items.map((item, index) => [
-    item.name.substring(0, 30), // Truncated name
-    item.icon || 'block', // Icon reference only (no base64)
-    item.description?.substring(0, 100) || '' // Truncated description
-  ]);
-
-  const compactViews = views.map((view) => {
-    const positions = view.items.map((viewItem) => {
-      const itemIndex = items.findIndex(item => item.id === viewItem.id);
-      const pos: number[] = [itemIndex, viewItem.tile.x, viewItem.tile.y];
-      // Optional 4th element: per-label background opacity override.
-      // Omitted when undefined (= Use global), so old and override-free output is unchanged.
-      if (viewItem.labelBackgroundOpacity !== undefined) {
-        pos.push(viewItem.labelBackgroundOpacity);
-      }
-      return pos;
-    });
-
-    const connections = view.connectors?.map((connector) => {
-      const fromIndex = items.findIndex(item => item.id === connector.anchors[0]?.ref.item);
-      const toIndex = items.findIndex(item => item.id === connector.anchors[connector.anchors.length - 1]?.ref.item);
-      const conn: Array<number | Array<Array<string | number>>> = [fromIndex, toIndex];
-      // Optional 3rd element: connector labels, carried so per-label opacity
-      // overrides have a host. Omitted when the connector has no labels.
-      // Per label: [text, position, height?, backgroundOpacity?], trailing
-      // optionals omitted when undefined.
-      if (connector.labels && connector.labels.length > 0) {
-        conn.push(
-          connector.labels.map((label) => {
-            const compactLabel: Array<string | number> = [
-              label.text,
-              label.position
-            ];
-            if (
-              label.height !== undefined ||
-              label.backgroundOpacity !== undefined
-            ) {
-              compactLabel.push(label.height ?? 0);
-            }
-            if (label.backgroundOpacity !== undefined) {
-              compactLabel.push(label.backgroundOpacity);
-            }
-            return compactLabel;
-          })
-        );
-      }
-      return conn;
-    }).filter(conn => conn[0] !== -1 && conn[1] !== -1) || [];
-
-    return [positions, connections];
-  });
-
-  return {
-    t: title?.substring(0, 40) || 'Untitled',
-    i: compactItems,
-    v: compactViews,
-    _: { f: 'compact', v: '1.0' }
-  };
-};
-
-export const transformFromCompactFormat = (compactModel: any): Model => {
-  const { t, i, v, _ } = compactModel;
-
-  // Restore from compact format
-  const fullItems = i.map((item: any, index: number) => ({
-    id: `item_${index}`,
-    name: item[0],
-    icon: item[1],
-    description: item[2] || '' // Restore description if available
-  }));
-
-  // Resolve icons from the internal icon library
-  const iconSet = new Set<string>();
-  i.forEach((item: any) => {
-    if (item[1]) iconSet.add(item[1]);
-  });
-
-  const fullIcons = Array.from(iconSet).map(iconName => {
-    // Find the icon in the available icons library
-    const existingIcon = availableIcons.find(icon => icon.id === iconName || icon.name === iconName);
-    
-    if (existingIcon) {
-      // Use the existing icon data with proper URL
-      return {
-        id: iconName,
-        name: existingIcon.name,
-        url: existingIcon.url,
-        collection: existingIcon.collection,
-        isIsometric: existingIcon.isIsometric ?? true
-      };
-    } else {
-      // Fallback for unknown icons
-      return {
-        id: iconName,
-        name: iconName,
-        url: '', // App will use default icon
-        isIsometric: true
-      };
-    }
-  });
-
-  const fullViews = v.map((view: any, viewIndex: number) => {
-    const [positions, connections] = view;
-
-    const viewItems = positions.map((pos: any) => {
-      const [itemIndex, x, y] = pos;
-      const viewItem: {
-        id: string;
-        tile: { x: number; y: number };
-        labelHeight: number;
-        labelBackgroundOpacity?: number;
-      } = {
-        id: `item_${itemIndex}`,
-        tile: { x, y },
-        labelHeight: 80
-      };
-      // 4th element is optional; missing means Use global (old compact files).
-      if (typeof pos[3] === 'number') {
-        viewItem.labelBackgroundOpacity = clampLabelBackgroundOpacity(pos[3]);
-      }
-      return viewItem;
-    });
-
-    const connectors = connections.map((conn: any, connIndex: number) => {
-      const [fromIndex, toIndex] = conn;
-      const labels = Array.isArray(conn[2])
-        ? conn[2]
-            .filter(
-              (compactLabel: any) =>
-                Array.isArray(compactLabel) &&
-                typeof compactLabel[0] === 'string' &&
-                typeof compactLabel[1] === 'number'
-            )
-            .map((compactLabel: any, labelIndex: number) => {
-              const label: {
-                id: string;
-                text: string;
-                position: number;
-                height?: number;
-                backgroundOpacity?: number;
-              } = {
-                id: `label_${viewIndex}_${connIndex}_${labelIndex}`,
-                text: String(compactLabel[0]).substring(0, 1000),
-                position: Number.isFinite(compactLabel[1])
-                  ? Math.min(100, Math.max(0, compactLabel[1]))
-                  : 50
-              };
-              if (typeof compactLabel[2] === 'number') {
-                label.height = compactLabel[2];
-              }
-              if (typeof compactLabel[3] === 'number') {
-                label.backgroundOpacity = clampLabelBackgroundOpacity(
-                  compactLabel[3]
-                );
-              }
-              return label;
-            })
-        : [];
-      return {
-        id: `conn_${viewIndex}_${connIndex}`,
-        color: 'color1',
-        anchors: [
-          { id: `a_${viewIndex}_${connIndex}_0`, ref: { item: `item_${fromIndex}` } },
-          { id: `a_${viewIndex}_${connIndex}_1`, ref: { item: `item_${toIndex}` } }
-        ],
-        width: 10,
-        description: '',
-        style: 'SOLID',
-        ...(labels.length > 0 ? { labels } : {})
-      };
-    });
-
-    return {
-      id: `view_${viewIndex}`,
-      name: `View ${viewIndex + 1}`,
-      items: viewItems,
-      connectors,
-      rectangles: [],
-      textBoxes: []
-    };
-  });
-
-  return {
-    title: t,
-    version: '1.0',
-    items: fullItems,
-    views: fullViews,
-    icons: fullIcons,
-    colors: [{ id: 'color1', value: '#a5b8f3' }]
-  };
-};
-
 export const exportAsJSON = (model: Model) => {
   const data = new Blob([JSON.stringify(model)], {
     type: 'application/json;charset=utf-8'
   });
 
-  downloadFile(data, generateGenericFilename('json'));
-};
-
-export const exportAsCompactJSON = (model: Model) => {
-  const compactModel = transformToCompactFormat(model);
-  const data = new Blob([JSON.stringify(compactModel)], {
-    type: 'application/json;charset=utf-8'
-  });
-
-  downloadFile(data, generateGenericFilename('compact.json'));
+  downloadFile(
+    data,
+    generateExportFilename('json', { projectTitle: model.title })
+  );
 };
 
 export const exportAsImage = async (
@@ -257,6 +151,12 @@ export const exportAsImage = async (
   scale: number = 1,
   bgcolor: string = '#ffffff'
 ) => {
+  // The hidden export tree is freshly mounted: wait until fonts, layout and
+  // paint have settled so text metrics match the long-lived editor canvas.
+  // Without this, canvas-measured TextBox widths (which carry only ~20px of
+  // slack) can disagree with the rendered glyphs and reflow lines.
+  await ensureExportSnapshotReady(el);
+
   // Calculate scaled dimensions
   const width = size ? size.width * scale : el.clientWidth * scale;
   const height = size ? size.height * scale : el.clientHeight * scale;
@@ -295,6 +195,9 @@ export const exportAsSVG = async (
   size?: Size,
   bgcolor: string = '#ffffff'
 ) => {
+  // Same readiness gate as PNG: both artifacts derive from one snapshot.
+  await ensureExportSnapshotReady(el);
+
   const width = size ? size.width : el.clientWidth;
   const height = size ? size.height : el.clientHeight;
 

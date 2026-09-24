@@ -40,6 +40,7 @@ const extractModelData = (state: ModelStoreWithHistory): Model => {
     version: state.version,
     title: state.title,
     description: state.description,
+    labelBackgroundOpacity: state.labelBackgroundOpacity,
     colors: state.colors,
     icons: state.icons,
     items: state.items,

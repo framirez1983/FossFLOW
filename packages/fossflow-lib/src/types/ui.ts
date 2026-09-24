@@ -63,6 +63,9 @@ export interface PlaceIconMode {
   type: 'PLACE_ICON';
   showCursor: boolean;
   id: string | null;
+  // When set, the click places an already-existing global ModelItem
+  // (ViewItem only) instead of creating a new ModelItem + ViewItem pair.
+  existingModelItemId?: string;
 }
 
 export interface ConnectorMode {
@@ -181,6 +184,7 @@ export interface UiState {
   mode: Mode;
   dialog: keyof typeof DialogTypeEnum | null;
   isMainMenuOpen: boolean;
+  isExistingItemPickerOpen: boolean;
   itemControls: ItemControls | null;
   contextMenu: ContextMenu | null;
   zoom: number;
@@ -209,6 +213,7 @@ export interface UiStateActions {
   incrementZoom: () => void;
   decrementZoom: () => void;
   setIsMainMenuOpen: (isOpen: boolean) => void;
+  setIsExistingItemPickerOpen: (isOpen: boolean) => void;
   setDialog: (dialog: keyof typeof DialogTypeEnum | null) => void;
   setZoom: (zoom: number) => void;
   setScroll: (scroll: Scroll) => void;
@@ -224,6 +229,7 @@ export interface UiStateActions {
   setConnectorInteractionMode: (mode: ConnectorInteractionMode) => void;
   setExpandLabels: (expand: boolean) => void;
   setIconPackManager: (iconPackManager: IconPackManagerProps | null) => void;
+  setViewOrientation: (viewOrientation: ViewOrientation) => void;
 
 }
 

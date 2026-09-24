@@ -1,5 +1,5 @@
 import React, { useCallback, useRef, useState } from 'react';
-import { Stack, Alert, IconButton as MUIIconButton, Box, Button, FormControlLabel, Checkbox, Typography, Slider } from '@mui/material';
+import { Stack, Alert, IconButton as MUIIconButton, Box, Button, FormControlLabel, Checkbox, Typography, Slider, Dialog, DialogTitle, DialogContent, DialogActions, TextField } from '@mui/material';
 import { ControlsContainer } from 'src/components/ItemControls/components/ControlsContainer';
 import { useUiStateStore } from 'src/stores/uiStateStore';
 import { useModelStore } from 'src/stores/modelStore';
@@ -12,6 +12,12 @@ import { Close as CloseIcon, FileUpload as FileUploadIcon } from '@mui/icons-mat
 import { Icons } from './Icons';
 import { IconGrid } from './IconGrid';
 import { generateId } from 'src/utils';
+import {
+  ICON_NAME_MAX_LENGTH,
+  countIconUsage,
+  deleteImportedIcon,
+  renameImportedIcon
+} from 'src/utils/iconInventory';
 
 export const IconSelectionControls = () => {
   const uiStateActions = useUiStateStore((state) => {
@@ -23,6 +29,7 @@ export const IconSelectionControls = () => {
   const iconCategoriesState = useUiStateStore((state) => state.iconCategoriesState);
   const modelActions = useModelStore((state) => state.actions);
   const currentIcons = useModelStore((state) => state.icons);
+  const modelItems = useModelStore((state) => state.items);
   const { setFilter, filteredIcons, filter } = useIconFiltering();
   const { iconCategories } = useIconCategories();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -50,6 +57,50 @@ export const IconSelectionControls = () => {
   const handleImportClick = useCallback(() => {
     fileInputRef.current?.click();
   }, []);
+
+  const [renamingIcon, setRenamingIcon] = useState<Icon | null>(null);
+  const [draftIconName, setDraftIconName] = useState('');
+  const [deletingIcon, setDeletingIcon] = useState<Icon | null>(null);
+
+  const handleRenameIcon = useCallback((icon: Icon) => {
+    setDraftIconName(icon.name);
+    setRenamingIcon(icon);
+  }, []);
+
+  const handleConfirmRenameIcon = useCallback(() => {
+    if (!renamingIcon) return;
+
+    const { icons, renamed } = renameImportedIcon(
+      currentIcons,
+      renamingIcon.id,
+      draftIconName
+    );
+    if (renamed) {
+      modelActions.set({ icons });
+    }
+    setRenamingIcon(null);
+  }, [renamingIcon, currentIcons, draftIconName, modelActions]);
+
+  const handleDeleteIcon = useCallback((icon: Icon) => {
+    setDeletingIcon(icon);
+  }, []);
+
+  const handleConfirmDeleteIcon = useCallback(() => {
+    if (!deletingIcon) return;
+
+    const { icons, deleted } = deleteImportedIcon(
+      currentIcons,
+      deletingIcon.id
+    );
+    if (deleted) {
+      modelActions.set({ icons });
+    }
+    setDeletingIcon(null);
+  }, [deletingIcon, currentIcons, modelActions]);
+
+  const deletingIconUsage = deletingIcon
+    ? countIconUsage(modelItems, deletingIcon.id)
+    : 0;
 
   const dismissAlert = useCallback(() => {
     setShowAlert(false);
@@ -214,11 +265,21 @@ export const IconSelectionControls = () => {
     >
       {filteredIcons && (
         <Section>
-          <IconGrid icons={filteredIcons} onMouseDown={onMouseDown} />
+          <IconGrid
+            icons={filteredIcons}
+            onMouseDown={onMouseDown}
+            onRenameIcon={handleRenameIcon}
+            onDeleteIcon={handleDeleteIcon}
+          />
         </Section>
       )}
       {!filteredIcons && (
-        <Icons iconCategories={iconCategories} onMouseDown={onMouseDown} />
+        <Icons
+          iconCategories={iconCategories}
+          onMouseDown={onMouseDown}
+          onRenameIcon={handleRenameIcon}
+          onDeleteIcon={handleDeleteIcon}
+        />
       )}
       
       <Section>
@@ -275,6 +336,104 @@ export const IconSelectionControls = () => {
           </Alert>
         )}
       </Section>
+
+      <Dialog
+        open={renamingIcon !== null}
+        onClose={() => {
+          setRenamingIcon(null);
+        }}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>Rename icon</DialogTitle>
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            handleConfirmRenameIcon();
+          }}
+        >
+          <DialogContent>
+            <TextField
+              autoFocus
+              fullWidth
+              label="Icon name"
+              value={draftIconName}
+              inputProps={{ maxLength: ICON_NAME_MAX_LENGTH }}
+              onChange={(event) => {
+                setDraftIconName(event.target.value);
+              }}
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button
+              onClick={() => {
+                setRenamingIcon(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              variant="contained"
+              disabled={!draftIconName.trim()}
+            >
+              Save
+            </Button>
+          </DialogActions>
+        </form>
+      </Dialog>
+
+      <Dialog
+        open={deletingIcon !== null}
+        onClose={() => {
+          setDeletingIcon(null);
+        }}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>
+          {deletingIconUsage > 0 ? 'Cannot delete icon' : 'Delete icon'}
+        </DialogTitle>
+        <DialogContent>
+          {deletingIconUsage > 0 ? (
+            <Typography variant="body2">
+              {`"${deletingIcon?.name}" is used by ${deletingIconUsage} item(s). Reassign those items before deleting it.`}
+            </Typography>
+          ) : (
+            <Typography variant="body2">
+              {`Delete "${deletingIcon?.name}" permanently from the inventory?`}
+            </Typography>
+          )}
+        </DialogContent>
+        <DialogActions>
+          {deletingIconUsage > 0 ? (
+            <Button
+              onClick={() => {
+                setDeletingIcon(null);
+              }}
+            >
+              Close
+            </Button>
+          ) : (
+            <>
+              <Button
+                onClick={() => {
+                  setDeletingIcon(null);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="contained"
+                color="error"
+                onClick={handleConfirmDeleteIcon}
+              >
+                Delete
+              </Button>
+            </>
+          )}
+        </DialogActions>
+      </Dialog>
     </ControlsContainer>
   );
 };

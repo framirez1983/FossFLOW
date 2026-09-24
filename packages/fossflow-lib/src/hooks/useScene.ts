@@ -7,7 +7,8 @@ import {
   TextBox,
   Rectangle,
   UiStateStore,
-  ItemReference
+  ItemReference,
+  Coords
 } from 'src/types';
 import { useUiStateStore } from 'src/stores/uiStateStore';
 import { useModelStore, useModelStoreApi } from 'src/stores/modelStore';
@@ -15,10 +16,12 @@ import { useSceneStore, useSceneStoreApi } from 'src/stores/sceneStore';
 import * as reducers from 'src/stores/reducers';
 import type { State } from 'src/stores/reducers/types';
 import { copyObject, generateId, getItemById, getItemByIdOrThrow, getPastedObject, getTargetTileFunction, isPastedValid } from 'src/utils';
+import { constrainedStrings } from 'src/schemas/common';
 import {
   CONNECTOR_DEFAULTS,
   RECTANGLE_DEFAULTS,
-  TEXTBOX_DEFAULTS
+  TEXTBOX_DEFAULTS,
+  VIEW_ITEM_DEFAULTS
 } from 'src/config';
 
 export const useScene = () => {
@@ -127,6 +130,7 @@ export const useScene = () => {
         version: model.version,
         title: model.title,
         description: model.description,
+        labelBackgroundOpacity: model.labelBackgroundOpacity,
         colors: model.colors,
         icons: model.icons,
         items: model.items,
@@ -181,7 +185,9 @@ export const useScene = () => {
 
   const deleteModelItem = useCallback(
     (id: string) => {
-      saveToHistoryBeforeChange();
+      if (!transactionInProgress.current) {
+        saveToHistoryBeforeChange();
+      }
       const newState = reducers.deleteModelItem(id, getState());
       setState(newState);
     },
@@ -242,6 +248,86 @@ export const useScene = () => {
       setState(newState);
     },
     [getState, setState, currentViewId, saveToHistoryBeforeChange]
+  );
+
+  const renameView = useCallback(
+    (id: string, name: string): boolean => {
+      const maxLength = constrainedStrings.name.maxLength ?? 100;
+      const trimmed = name.trim().substring(0, maxLength);
+
+      if (!trimmed) return false;
+
+      const existing = getItemById(getState().model.views, id);
+      if (!existing || existing.value.name === trimmed) return false;
+
+      if (!transactionInProgress.current) {
+        saveToHistoryBeforeChange();
+      }
+
+      const newState = reducers.view({
+        action: 'UPDATE_VIEW',
+        payload: { name: trimmed },
+        ctx: { viewId: id, state: getState() }
+      });
+      setState(newState);
+      return true;
+    },
+    [getState, setState, saveToHistoryBeforeChange]
+  );
+
+  const createView = useCallback(
+    (name: string): string | null => {
+      const maxLength = constrainedStrings.name.maxLength ?? 100;
+      const trimmed = name.trim().substring(0, maxLength);
+
+      if (!trimmed) return null;
+
+      if (!transactionInProgress.current) {
+        saveToHistoryBeforeChange();
+      }
+
+      const id = generateId();
+      const newState = reducers.view({
+        action: 'CREATE_VIEW',
+        payload: { name: trimmed },
+        ctx: { viewId: id, state: getState() }
+      });
+      setState(newState);
+      return id;
+    },
+    [getState, setState, saveToHistoryBeforeChange]
+  );
+
+  const placeExistingItem = useCallback(
+    (modelItemId: string, tile: Coords): boolean => {
+      if (!currentViewId) return false;
+
+      const stateToUse = getState();
+
+      // Guard 1: the global item must exist (never create model data here).
+      if (!getItemById(stateToUse.model.items, modelItemId)) return false;
+
+      // Guard 2: no duplicate placement within one view. Cross-view reuse
+      // is allowed; each view owns its ViewItem independently.
+      const view = getItemById(stateToUse.model.views, currentViewId);
+      if (!view) return false;
+      if (view.value.items.some((item) => item.id === modelItemId)) {
+        return false;
+      }
+
+      if (!transactionInProgress.current) {
+        saveToHistoryBeforeChange();
+      }
+
+      const newState = reducers.view({
+        action: 'CREATE_VIEWITEM',
+        payload: { ...VIEW_ITEM_DEFAULTS, id: modelItemId, tile },
+        ctx: { viewId: currentViewId, state: stateToUse }
+      });
+      setState(newState);
+      return true;
+    },
+    [currentViewId, getState, setState, saveToHistoryBeforeChange]
   );
 
   const createConnector = useCallback(
@@ -520,6 +606,9 @@ export const useScene = () => {
     createModelItem,
     updateModelItem,
     deleteModelItem,
+    renameView,
+    createView,
+    placeExistingItem,
     createViewItem,
     updateViewItem,
     deleteViewItem,

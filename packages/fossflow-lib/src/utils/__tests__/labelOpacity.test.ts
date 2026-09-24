@@ -9,6 +9,7 @@ import {
 } from '../labelOpacity';
 import { viewItemSchema } from 'src/schemas/views';
 import { connectorLabelSchema } from 'src/schemas/connector';
+import { modelSchema } from 'src/schemas/model';
 
 describe('labelOpacity', () => {
   it('defaults to fully opaque', () => {
@@ -89,5 +90,54 @@ describe('labelOpacity', () => {
         backgroundOpacity: -0.1
       }).success
     ).toBe(false);
+  });
+
+  it('persists the diagram-wide global opacity on the model', () => {
+    const base = {
+      title: 'Opacity diagram',
+      items: [],
+      views: [],
+      icons: [],
+      colors: []
+    };
+    expect(
+      modelSchema.safeParse({ ...base, labelBackgroundOpacity: 0.6 }).success
+    ).toBe(true);
+    expect(
+      modelSchema.safeParse({ ...base, labelBackgroundOpacity: 2 }).success
+    ).toBe(false);
+    // Old diagrams without the field remain valid (default to 1.0).
+    const legacy = modelSchema.safeParse(base);
+    expect(legacy.success).toBe(true);
+    if (legacy.success) {
+      expect(legacy.data.labelBackgroundOpacity).toBeUndefined();
+      expect(
+        resolveLabelBackgroundOpacity(
+          undefined,
+          legacy.data.labelBackgroundOpacity ?? 1
+        )
+      ).toBe(1);
+    }
+  });
+
+  it('survives a JSON save/load round trip at non-default opacity', () => {
+    const saved = JSON.stringify({
+      title: 'Opacity diagram',
+      labelBackgroundOpacity: 0.6,
+      items: [],
+      views: [],
+      icons: [],
+      colors: []
+    });
+    const reloaded = modelSchema.parse(JSON.parse(saved));
+
+    expect(reloaded.labelBackgroundOpacity).toBe(0.6);
+    // Per-label override still wins over the persisted global.
+    expect(resolveLabelBackgroundOpacity(0.25, reloaded.labelBackgroundOpacity)).toBe(
+      0.25
+    );
+    expect(
+      resolveLabelBackgroundOpacity(undefined, reloaded.labelBackgroundOpacity)
+    ).toBe(0.6);
   });
 });

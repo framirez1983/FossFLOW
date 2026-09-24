@@ -97,6 +97,7 @@ export const NodeSettings = ({
       <Section title="Name">
         <TextField
           value={modelItem.name}
+          inputProps={{ maxLength: 100 }}
           onChange={(e) => {
             const text = e.target.value as string;
             if (modelItem.name !== text) onModelItemUpdated({ name: text });

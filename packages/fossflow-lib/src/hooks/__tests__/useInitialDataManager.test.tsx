@@ -62,8 +62,11 @@ describe('useInitialDataManager - Orphaned Connector Handling', () => {
         setScroll: jest.fn(),
         setZoom: jest.fn(),
         setIconCategoriesState: jest.fn(),
+        setLabelSettings: jest.fn(),
+        setViewOrientation: jest.fn(),
         resetUiState: jest.fn()
       },
+      labelSettings: { expandButtonPadding: 0, backgroundOpacity: 1 },
       rendererEl: null,
       editorMode: 'INTERACTIVE'
     };
@@ -72,6 +75,9 @@ describe('useInitialDataManager - Orphaned Connector Handling', () => {
         return selector(mockUiStateStore);
       }
       return mockUiStateStore;
+    });
+    (uiStateStoreModule.useUiStateStoreApi as jest.Mock).mockReturnValue({
+      getState: () => ({ labelSettings: mockUiStateStore.labelSettings })
     });
 
     // Setup mock changeView
@@ -429,5 +435,298 @@ describe('useInitialDataManager - Orphaned Connector Handling', () => {
     expect(setCall.views[0].connectors[0].id).toBe('connector1');
     expect(setCall.views[0].connectors[1].id).toBe('connector2');
     expect(console.warn).not.toHaveBeenCalled();
+  });
+
+  it('should sync LabelSettings from the persisted global label opacity on load', () => {
+    const { result } = renderHook(() => useInitialDataManager());
+
+    const initialData: InitialData = {
+      version: '1.0',
+      title: 'Test',
+      description: '',
+      labelBackgroundOpacity: 0.6,
+      colors: [],
+      icons: [],
+      items: [],
+      views: [
+        {
+          id: 'view1',
+          name: 'Test View',
+          items: [],
+          connectors: [],
+          rectangles: [],
+          textBoxes: []
+        }
+      ]
+    };
+
+    act(() => {
+      result.current.load(initialData);
+    });
+
+    expect(
+      mockUiStateStore.actions.setLabelSettings
+    ).toHaveBeenCalledWith({ expandButtonPadding: 0, backgroundOpacity: 0.6 });
+  });
+
+  it('should default LabelSettings to fully opaque when the diagram has no global opacity', () => {
+    const { result } = renderHook(() => useInitialDataManager());
+
+    const initialData: InitialData = {
+      version: '1.0',
+      title: 'Test',
+      description: '',
+      colors: [],
+      icons: [],
+      items: [],
+      views: [
+        {
+          id: 'view1',
+          name: 'Test View',
+          items: [],
+          connectors: [],
+          rectangles: [],
+          textBoxes: []
+        }
+      ]
+    };
+
+    act(() => {
+      result.current.load(initialData);
+    });
+
+    expect(
+      mockUiStateStore.actions.setLabelSettings
+    ).toHaveBeenCalledWith({ expandButtonPadding: 0, backgroundOpacity: 1 });
+  });
+
+  it('defers export (NON_INTERACTIVE) loads until webfonts settle', async () => {
+    mockUiStateStore.editorMode = 'NON_INTERACTIVE';
+    let resolveFonts!: () => void;
+    (document as unknown as Record<string, unknown>).fonts = {
+      ready: new Promise<void>((resolve) => {
+        resolveFonts = resolve;
+      })
+    };
+
+    try {
+      const { result } = renderHook(() => useInitialDataManager());
+
+      const initialData: InitialData = {
+        version: '1.0',
+        title: 'Test',
+        description: '',
+        colors: [],
+        icons: [],
+        items: [],
+        views: [
+          {
+            id: 'view1',
+            name: 'Test View',
+            items: [],
+            connectors: [],
+            rectangles: [],
+            textBoxes: []
+          }
+        ]
+      };
+
+      act(() => {
+        result.current.load(initialData);
+      });
+
+      // Scene measurement (canvas measureText) must not run yet.
+      expect(mockModelStore.actions.set).not.toHaveBeenCalled();
+
+      await act(async () => {
+        resolveFonts();
+      });
+
+      expect(mockModelStore.actions.set).toHaveBeenCalled();
+    } finally {
+      delete (document as unknown as Record<string, unknown>).fonts;
+    }
+  });
+
+  it('a superseding load wins over a pending font-gated load', async () => {
+    mockUiStateStore.editorMode = 'NON_INTERACTIVE';
+    let resolveFonts!: () => void;
+    (document as unknown as Record<string, unknown>).fonts = {
+      ready: new Promise<void>((resolve) => {
+        resolveFonts = resolve;
+      })
+    };
+
+    try {
+      const { result } = renderHook(() => useInitialDataManager());
+
+      const buildData = (title: string): InitialData => {
+        return {
+          version: '1.0',
+          title,
+          description: '',
+          colors: [],
+          icons: [],
+          items: [],
+          views: [
+            {
+              id: 'view1',
+              name: 'Test View',
+              items: [],
+              connectors: [],
+              rectangles: [],
+              textBoxes: []
+            }
+          ]
+        };
+      };
+
+      act(() => {
+        result.current.load(buildData('First'));
+        result.current.load(buildData('Second'));
+      });
+
+      await act(async () => {
+        resolveFonts();
+      });
+
+      const calls = mockModelStore.actions.set.mock.calls;
+      expect(calls).toHaveLength(1);
+      expect(calls[0][0].title).toBe('Second');
+    } finally {
+      delete (document as unknown as Record<string, unknown>).fonts;
+    }
+  });
+
+  it('forwards resolved textbox sizes to changeView when present', () => {
+    const { result } = renderHook(() => useInitialDataManager());
+
+    const initialData: InitialData = {
+      version: '1.0',
+      title: 'Test',
+      description: '',
+      colors: [],
+      icons: [],
+      items: [],
+      views: [
+        {
+          id: 'view1',
+          name: 'Test View',
+          items: [],
+          connectors: [],
+          rectangles: [],
+          textBoxes: []
+        }
+      ],
+      textBoxSizes: { tb1: { width: 3.5, height: 1 } }
+    };
+
+    act(() => {
+      result.current.load(initialData);
+    });
+
+    expect(mockChangeView).toHaveBeenCalledWith(
+      'view1',
+      expect.objectContaining({
+        textBoxSizes: { tb1: { width: 3.5, height: 1 } }
+      }),
+      { tb1: { width: 3.5, height: 1 } }
+    );
+  });
+
+  it('passes no snapshot to changeView when absent', () => {
+    const { result } = renderHook(() => useInitialDataManager());
+
+    const initialData: InitialData = {
+      version: '1.0',
+      title: 'Test',
+      description: '',
+      colors: [],
+      icons: [],
+      items: [],
+      views: [
+        {
+          id: 'view1',
+          name: 'Test View',
+          items: [],
+          connectors: [],
+          rectangles: [],
+          textBoxes: []
+        }
+      ]
+    };
+
+    act(() => {
+      result.current.load(initialData);
+    });
+
+    expect(mockChangeView).toHaveBeenCalledWith(
+      'view1',
+      expect.anything(),
+      undefined
+    );
+  });
+
+  it('applies a supplied view orientation to UI state on load', () => {
+    const { result } = renderHook(() => useInitialDataManager());
+
+    const initialData: InitialData = {
+      version: '1.0',
+      title: 'Test',
+      description: '',
+      colors: [],
+      icons: [],
+      items: [],
+      views: [
+        {
+          id: 'view1',
+          name: 'Test View',
+          items: [],
+          connectors: [],
+          rectangles: [],
+          textBoxes: []
+        }
+      ],
+      viewOrientation: 'SW'
+    };
+
+    act(() => {
+      result.current.load(initialData);
+    });
+
+    expect(
+      mockUiStateStore.actions.setViewOrientation
+    ).toHaveBeenCalledWith('SW');
+  });
+
+  it('leaves UI orientation untouched when no override is supplied', () => {
+    const { result } = renderHook(() => useInitialDataManager());
+
+    const initialData: InitialData = {
+      version: '1.0',
+      title: 'Test',
+      description: '',
+      colors: [],
+      icons: [],
+      items: [],
+      views: [
+        {
+          id: 'view1',
+          name: 'Test View',
+          items: [],
+          connectors: [],
+          rectangles: [],
+          textBoxes: []
+        }
+      ]
+    };
+
+    act(() => {
+      result.current.load(initialData);
+    });
+
+    expect(
+      mockUiStateStore.actions.setViewOrientation
+    ).not.toHaveBeenCalled();
   });
 });

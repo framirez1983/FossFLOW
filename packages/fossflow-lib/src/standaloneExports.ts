@@ -4,6 +4,10 @@ export const version = PACKAGE_VERSION;
 export * as reducers from 'src/stores/reducers';
 export { INITIAL_DATA, INITIAL_SCENE_STATE } from 'src/config';
 export * from 'src/schemas';
+export { generateExportFilename } from 'src/utils/exportOptions';
+export type { ExportFilenameContext } from 'src/utils/exportOptions';
+export { parseDiagramFileUpload } from 'src/utils/diagramFile';
+export type { DiagramFileUploadResult } from 'src/utils/diagramFile';
 export type { IsoflowProps, InitialData } from 'src/types';
 export * from 'src/types/model';
 

@@ -1,5 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { storageManager, DiagramInfo } from '../services/storageService';
+import {
+  generateExportFilename,
+  parseDiagramFileUpload
+} from 'fossflow';
 import './DiagramManager.css';
 
 interface Props {
@@ -21,6 +25,7 @@ export const DiagramManager: React.FC<Props> = ({
   const [isServerStorage, setIsServerStorage] = useState(false);
   const [saveName, setSaveName] = useState('');
   const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     loadDiagrams();
@@ -96,31 +101,72 @@ export const DiagramManager: React.FC<Props> = ({
     }
   };
 
-  const handleCopyShareLink = (id: string) => {
-    const shareUrl = `${window.location.origin}/display/${id}`;
-    navigator.clipboard
-      .writeText(shareUrl)
-      .then(() => {
-        alert(`Share link copied to clipboard:\n${shareUrl}`);
-      })
-      .catch(() => {
-        const textArea = document.createElement('textarea');
-        textArea.value = shareUrl;
-        document.body.appendChild(textArea);
-        textArea.select();
-        document.execCommand('copy');
+  /**
+   * Backup/recovery download: fetches the exact stored payload and saves it
+   * as a file. Deliberately bypasses model validation and never touches the
+   * editor, so even a diagram that fails client validation can be recovered.
+   */
+  const handleDownload = async (id: string, fallbackName: string) => {
+    try {
+      setError(null);
+      const storage = storageManager.getStorage();
+      const data = await storage.loadDiagram(id);
 
-        // Safely remove the temporary element
-        try {
-          if (textArea.parentNode === document.body) {
-            document.body.removeChild(textArea);
-          }
-        } catch (err) {
-          console.warn('Failed to remove temporary textarea:', err);
-        }
-
-        alert(`Share link copied to clipboard:\n${shareUrl}`);
+      const filename = generateExportFilename('json', {
+        projectTitle:
+          (data as any)?.name || (data as any)?.title || fallbackName
       });
+      const blob = new Blob([JSON.stringify(data, null, 2)], {
+        type: 'application/json'
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to download diagram');
+    }
+  };
+
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  /**
+   * Upload a canonical Full JSON file into storage. The payload is validated
+   * against the current model schema BEFORE anything is stored; failures are
+   * reported and nothing is uploaded. A successful upload creates a new
+   * server entry (the server assigns its ID) and refreshes the list without
+   * touching the current editor diagram.
+   */
+  const handleUploadFile = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files?.[0];
+    // Reset so the same file can be uploaded again.
+    event.target.value = '';
+    if (!file) return;
+
+    try {
+      setError(null);
+      const text = await file.text();
+      const result = parseDiagramFileUpload(text);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+
+      const storage = storageManager.getStorage();
+      await storage.createDiagram({
+        ...result.model,
+        name: result.model.title
+      } as any);
+      await loadDiagrams(); // Refresh list
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to upload diagram');
+    }
   };
 
   const handleSave = async () => {
@@ -223,6 +269,19 @@ export const DiagramManager: React.FC<Props> = ({
           >
             💾 Save Current Diagram
           </button>
+          <button
+            className="action-button transfer"
+            onClick={handleUploadClick}
+          >
+            ⬆️ Upload
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".json"
+            style={{ display: 'none' }}
+            onChange={handleUploadFile}
+          />
         </div>
 
         {loading ? (
@@ -248,7 +307,7 @@ export const DiagramManager: React.FC<Props> = ({
                     </div>
                     <div className="diagram-actions">
                       <button
-                        className="action-button"
+                        className="action-button primary"
                         onClick={() => {
                           return handleLoad(diagram.id);
                         }}
@@ -257,13 +316,13 @@ export const DiagramManager: React.FC<Props> = ({
                         {loading ? 'Loading...' : 'Load'}
                       </button>
                       <button
-                        className="action-button share"
+                        className="action-button transfer"
                         onClick={() => {
-                          return handleCopyShareLink(diagram.id);
+                          return handleDownload(diagram.id, diagram.name);
                         }}
-                        title="Copy shareable link"
+                        title="Download diagram file"
                       >
-                        Share
+                        Download
                       </button>
                       <button
                         className="action-button danger"

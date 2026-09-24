@@ -9,7 +9,6 @@ const locale: LocaleProps = {
     redo: "Yinele", 
     open: "Aç",
     exportJson: "JSON olarak dışa aktar",
-    exportCompactJson: "Kompakt JSON olarak dışa aktar",
     exportImage: "Görüntü olarak dışa aktar",
     clearCanvas: "Tuvali temizle",
     settings: "Ayarlar",

@@ -1,4 +1,5 @@
-import { textBoxSchema } from '../textBox';
+import { textBoxSchema, textBoxContentSchema } from '../textBox';
+import { modelSchema } from '../model';
 
 describe('textBoxSchema', () => {
   it('validates a correct text box', () => {
@@ -37,5 +38,39 @@ describe('textBoxSchema', () => {
     expect(
       textBoxSchema.safeParse({ ...base, textOrientation: 'SIDEWAYS' }).success
     ).toBe(false);
+  });
+  it('allows annotation content up to 500 characters', () => {
+    const base = { id: 'tb1', tile: { x: 0, y: 0 } };
+    expect(
+      textBoxSchema.safeParse({ ...base, content: 'x'.repeat(500) }).success
+    ).toBe(true);
+    expect(
+      textBoxSchema.safeParse({ ...base, content: 'x'.repeat(501) }).success
+    ).toBe(false);
+    expect(textBoxContentSchema.safeParse('x'.repeat(500)).success).toBe(true);
+  });
+  it('loads a stored model with 101-500 character content without migration', () => {
+    // S4Optik regression: such diagrams were saveable but unloadable.
+    const model = {
+      title: 'Recovery',
+      items: [],
+      icons: [],
+      colors: [],
+      views: [
+        {
+          id: 'v1',
+          name: 'Main',
+          items: [],
+          textBoxes: [
+            { id: 't1', tile: { x: 0, y: 0 }, content: 'y'.repeat(150) }
+          ]
+        }
+      ]
+    };
+    const result = modelSchema.safeParse(model);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.views[0].textBoxes?.[0].content).toHaveLength(150);
+    }
   });
 });

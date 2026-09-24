@@ -12,3 +12,5 @@ export * from './copyPaste';
 export * from './connectorGroups';
 export * from './clickStopperProps';
 export * from './labelOpacity';
+export * from './iconInventory';
+export * from './diagramFile';

@@ -42,7 +42,13 @@ export const TextBox = memo(({ textBox }: Props) => {
       >
         <Typography
           sx={{
-            ...fontProps
+            ...fontProps,
+            // Free TextBox content is single-line by authoring (single-line
+            // TextField; explicit \n is unsupported and collapses). Prevent
+            // automatic whitespace wrapping so a tight box overflows instead
+            // of inventing lines the editor never showed. Node and connector
+            // labels are untouched.
+            whiteSpace: 'nowrap'
           }}
         >
           {textBox.content}

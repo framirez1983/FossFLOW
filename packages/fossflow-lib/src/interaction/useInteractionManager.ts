@@ -218,6 +218,13 @@ export const useInteractionManager = () => {
           showCursor: false
         });
         uiState.actions.setItemControls(null);
+      } else if (
+        hotkeyMapping.addItem &&
+        key === hotkeyMapping.addItem &&
+        e.shiftKey
+      ) {
+        e.preventDefault();
+        uiState.actions.setIsExistingItemPickerOpen(true);
       } else if (hotkeyMapping.addItem && key === hotkeyMapping.addItem) {
         e.preventDefault();
         uiState.actions.setItemControls({

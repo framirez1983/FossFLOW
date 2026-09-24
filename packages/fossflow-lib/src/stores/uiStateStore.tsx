@@ -27,6 +27,7 @@ const initialState = () => {
       mode: getStartingMode('EXPLORABLE_READONLY'),
       iconCategoriesState: [],
       isMainMenuOpen: false,
+      isExistingItemPickerOpen: false,
       dialog: null,
       rendererEl: null,
       contextMenu: null,
@@ -130,6 +131,9 @@ const initialState = () => {
         setIsMainMenuOpen: (isMainMenuOpen) => {
           set({ isMainMenuOpen, itemControls: null });
         },
+        setIsExistingItemPickerOpen: (isExistingItemPickerOpen) => {
+          set({ isExistingItemPickerOpen });
+        },
         incrementZoom: () => {
           const { zoom } = get();
           set({ zoom: incrementZoom(zoom) });
@@ -179,6 +183,9 @@ const initialState = () => {
         },
         setIconPackManager: (iconPackManager) => {
           set({ iconPackManager });
+        },
+        setViewOrientation: (viewOrientation) => {
+          set({ viewOrientation });
         }
       }
     };

@@ -12,6 +12,9 @@ export const modelSchema = z
     version: z.string().max(10).optional(),
     title: constrainedStrings.name,
     description: constrainedStrings.description.optional(),
+    // Diagram-wide label background fill opacity 0-1.
+    // Optional so old diagrams without it keep rendering fully opaque.
+    labelBackgroundOpacity: z.number().min(0).max(1).optional(),
     items: modelItemsSchema,
     views: viewsSchema,
     icons: iconsSchema,

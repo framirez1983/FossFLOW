@@ -6,13 +6,16 @@
         "importFile": "Import File",
         "exportFile": "Export File",
         "quickSaveSession": "Quick Save (Session)",
-        "serverStorage": "Server Storage"
+        "serverStorage": "Server Storage",
+        "saveServer": "Save",
+        "saveServerTitle": "Save to server storage"
     },
     "status": {
         "current": "Current",
         "untitled": "Untitled Diagram",
         "modified": "Modified",
-        "sessionStorageNote": "Session storage only - export to save permanently"
+        "sessionStorageNote": "Session storage only - export to save permanently",
+        "serverStorageNote": "Server storage - saving updates the server copy"
     },
     "dialog": {
         "save": {
@@ -57,6 +60,8 @@
         "storageFull": "Storage full! Opening Storage Manager...",
         "autoSaveFailed": "Storage full! Please use Storage Manager to free up space.",
         "beforeUnload": "You have unsaved changes. Are you sure you want to leave?",
-        "quotaExceeded": "Storage quota exceeded. Please export important diagrams and clear some space."
+        "quotaExceeded": "Storage quota exceeded. Please export important diagrams and clear some space.",
+        "serverSaveFailed": "Failed to save diagram to server storage. Your changes have been kept.",
+        "serverStorageUnavailable": "Server storage is not available. Your changes have been kept."
     }
 }

@@ -40,6 +40,7 @@ import {
   toPx,
   getItemByIdOrThrow
 } from 'src/utils';
+import { theme } from 'src/styles/theme';
 import { useScene } from 'src/hooks/useScene';
 
 interface ScreenToIso {
@@ -560,8 +561,70 @@ interface FontProps {
   fontFamily: string;
 }
 
-export const getTextWidth = (text: string, fontProps: FontProps) => {
-  if (!text) return 0;
+let domMeasureProbe: HTMLDivElement | null = null;
+
+/**
+ * Measure text with the DOM layout engine itself (an offscreen,
+ * shrink-to-fit, single-run probe styled exactly like the rendered text).
+ * Unlike canvas measureText, this uses the same shaper, fallback faces,
+ * synthesis and rounding as the renderer, in every browser.
+ * Returns 0 when layout is unavailable (e.g. jsdom, SSR) so callers fall
+ * back to canvas measurement.
+ */
+export const measureDomTextWidth = (
+  text: string,
+  fontCss: string,
+  letterSpacingPx: number
+): number => {
+  if (typeof document === 'undefined' || !document.body) return 0;
+
+  if (!domMeasureProbe || !domMeasureProbe.isConnected) {
+    domMeasureProbe = document.createElement('div');
+    domMeasureProbe.setAttribute('aria-hidden', 'true');
+    domMeasureProbe.style.position = 'fixed';
+    domMeasureProbe.style.top = '-10000px';
+    domMeasureProbe.style.left = '-10000px';
+    domMeasureProbe.style.visibility = 'hidden';
+    domMeasureProbe.style.pointerEvents = 'none';
+    domMeasureProbe.style.display = 'inline-block';
+    domMeasureProbe.style.padding = '0';
+    domMeasureProbe.style.margin = '0';
+    domMeasureProbe.style.border = '0';
+    domMeasureProbe.style.whiteSpace = 'nowrap';
+    document.body.appendChild(domMeasureProbe);
+  }
+
+  domMeasureProbe.style.font = fontCss;
+  domMeasureProbe.style.letterSpacing = `${letterSpacingPx}px`;
+  domMeasureProbe.textContent = text;
+
+  return domMeasureProbe.scrollWidth;
+};
+
+/**
+ * Letter-spacing applied by the rendered Typography (MUI body1 default
+ * `0.00938em`, read from the live theme so overrides stay in sync). Canvas
+ * measureText ignores letter-spacing, but the DOM adds it after every glyph,
+ * so it must be added back or boxes come out systematically narrower than
+ * the laid-out text — consuming nearly all wrap slack on real strings.
+ */
+export const resolveLetterSpacingPx = (
+  letterSpacing: unknown,
+  fontSizePx: number
+): number => {
+  if (typeof letterSpacing === 'number') return letterSpacing;
+  if (typeof letterSpacing !== 'string') return 0;
+
+  const trimmed = letterSpacing.trim().toLowerCase();
+  if (!trimmed || trimmed === 'normal' || trimmed === 'none') return 0;
+
+  const value = parseFloat(trimmed);
+  if (!Number.isFinite(value)) return 0;
+  if (trimmed.endsWith('em')) return value * fontSizePx;
+  return value;
+};
+
+export const getTextWidth = (text: string, fontProps: FontProps) => {  if (!text) return 0;
 
   const paddingX = TEXTBOX_PADDING * UNPROJECTED_TILE_SIZE;
   const fontSizePx = toPx(fontProps.fontSize * UNPROJECTED_TILE_SIZE);
@@ -577,7 +640,30 @@ export const getTextWidth = (text: string, fontProps: FontProps) => {
 
   canvas.remove();
 
-  return (metrics.width + paddingX * 2) / UNPROJECTED_TILE_SIZE - 0.8;
+  const letterSpacingPx = resolveLetterSpacingPx(
+    theme.typography.body1?.letterSpacing,
+    fontProps.fontSize * UNPROJECTED_TILE_SIZE
+  );
+
+  // Canvas shaping can disagree with DOM layout by more than the wrap slack,
+  // in either direction depending on the font stack and engine, so the DOM
+  // measurement (same shaper as the renderer) wins whenever it is larger.
+  // It is 0 where layout is unavailable (e.g. jsdom), where canvas applies.
+  const domInkWidth = measureDomTextWidth(
+    text,
+    `${fontProps.fontWeight} ${fontSizePx} ${fontProps.fontFamily}`,
+    letterSpacingPx
+  );
+
+  return (
+    (Math.max(
+      metrics.width + letterSpacingPx * text.length,
+      domInkWidth
+    ) +
+      paddingX * 2) /
+      UNPROJECTED_TILE_SIZE -
+    0.8
+  );
 };
 
 export const getTextBoxDimensions = (textBox: TextBox): Size => {

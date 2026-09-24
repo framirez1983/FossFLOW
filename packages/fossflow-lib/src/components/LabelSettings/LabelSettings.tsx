@@ -5,6 +5,7 @@ import {
   Slider
 } from '@mui/material';
 import { useUiStateStore } from 'src/stores/uiStateStore';
+import { useModelStore } from 'src/stores/modelStore';
 import {
   labelOpacityToPercent,
   labelPercentToOpacity
@@ -13,6 +14,7 @@ import {
 export const LabelSettings = () => {
   const labelSettings = useUiStateStore((state) => state.labelSettings);
   const setLabelSettings = useUiStateStore((state) => state.actions.setLabelSettings);
+  const modelActions = useModelStore((state) => state.actions);
 
   const handlePaddingChange = (_event: Event, value: number | number[]) => {
     setLabelSettings({
@@ -25,10 +27,15 @@ export const LabelSettings = () => {
     _event: Event,
     value: number | number[]
   ) => {
+    const backgroundOpacity = labelPercentToOpacity(value as number);
     setLabelSettings({
       ...labelSettings,
-      backgroundOpacity: labelPercentToOpacity(value as number)
+      backgroundOpacity
     });
+    // Persist with the diagram (without touching undo history) so a normal
+    // Save keeps the value. This flows to the app via onModelUpdated, which
+    // also marks the diagram as having unsaved changes.
+    modelActions.set({ labelBackgroundOpacity: backgroundOpacity }, true);
   };
 
   return (

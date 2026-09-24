@@ -10,6 +10,14 @@ describe('modelItemSchema', () => {
     };
     expect(modelItemSchema.safeParse(valid).success).toBe(true);
   });
+  it('keeps the 100-character node name limit', () => {
+    expect(
+      modelItemSchema.safeParse({ id: 'item1', name: 'x'.repeat(100) }).success
+    ).toBe(true);
+    expect(
+      modelItemSchema.safeParse({ id: 'item1', name: 'x'.repeat(101) }).success
+    ).toBe(false);
+  });
   it('fails if required fields are missing', () => {
     const invalid = { name: 'Test' };
     const result = modelItemSchema.safeParse(invalid);

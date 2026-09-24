@@ -8,7 +8,7 @@ export const PlaceIcon: ModeActions = {
   mousedown: ({ uiState, scene, isRendererInteraction }) => {
     if (uiState.mode.type !== 'PLACE_ICON' || !isRendererInteraction) return;
 
-    if (!uiState.mode.id) {
+    if (!uiState.mode.id && !uiState.mode.existingModelItemId) {
       const itemAtTile = getItemAtTile({
         tile: uiState.mouse.position.tile,
         scene
@@ -25,6 +25,30 @@ export const PlaceIcon: ModeActions = {
   },
   mouseup: ({ uiState, scene }) => {
     if (uiState.mode.type !== 'PLACE_ICON') return;
+
+    if (uiState.mode.existingModelItemId) {
+      // Reuse flow: place only a ViewItem for the existing global item,
+      // then leave placement mode (a second placement would be a duplicate).
+      const targetTile = findNearestUnoccupiedTile(
+        uiState.mouse.position.tile,
+        scene
+      );
+
+      if (targetTile) {
+        scene.placeExistingItem(
+          uiState.mode.existingModelItemId,
+          targetTile
+        );
+      }
+
+      uiState.actions.setMode({
+        type: 'CURSOR',
+        mousedownItem: null,
+        showCursor: true
+      });
+      uiState.actions.setItemControls(null);
+      return;
+    }
 
     if (uiState.mode.id !== null) {
       // Find the nearest unoccupied tile to the target position

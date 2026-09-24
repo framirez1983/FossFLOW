@@ -6,7 +6,7 @@ import {
   getIsoProjectionCss,
   getTilePosition
 } from 'src/utils/renderer';
-import { orientProjected, VIEW_ORIENTATIONS } from 'src/utils/viewOrientation';
+import { orientProjected, orientationCss, VIEW_ORIENTATIONS } from 'src/utils/viewOrientation';
 import { View } from 'src/types';
 import { useIsoProjection } from '../useIsoProjection';
 
@@ -81,6 +81,33 @@ test('surface rotation preserves the legacy CSS matrix, origin and routed connec
     }
     expect(rotated.pxSize).toEqual(baseline.pxSize);
     expect(JSON.stringify(path)).toBe(before);
+  }
+});
+
+test('follow-plane text prepends the orientation transform instead of staying upright', () => {
+  const tile = { x: 3, y: -2 };
+  const { result } = renderHook(
+    () => ({
+      projection: useIsoProjection({
+        from: tile,
+        to: { x: 8, y: -2 },
+        orientation: 'Y',
+        keepUpright: false
+      }),
+      store: useUiStateStoreApi()
+    }),
+    { wrapper }
+  );
+  const expectedBase = getIsoProjectionCss('Y');
+  expect(result.current.projection.css.transform).toBe(expectedBase);
+
+  for (const orientation of VIEW_ORIENTATIONS) {
+    act(() => result.current.store.setState({ viewOrientation: orientation }));
+    expect(result.current.projection.css.transform).toBe(
+      orientation === 'NE'
+        ? expectedBase
+        : `${orientationCss(orientation)} ${expectedBase}`
+    );
   }
 });
 

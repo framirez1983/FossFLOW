@@ -58,6 +58,7 @@ export const TextBoxControls = ({ id }: Props) => {
         <Section title="Enter text">
           <TextField
             value={textBox.content}
+            inputProps={{ maxLength: 500 }}
             onChange={(e) => {
               updateTextBox(textBox.id, { content: e.target.value as string });
             }}

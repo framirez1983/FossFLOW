@@ -60,3 +60,15 @@ test('rotation is ignored during a pointer gesture and reset restores NE', () =>
   });
   expect(result.current.getState().viewOrientation).toBe('NE');
 });
+
+test('setViewOrientation sets the orientation directly without rotating', () => {
+  const { result } = renderHook(() => useUiStateStoreApi(), { wrapper });
+  act(() => {
+    result.current.getState().actions.setViewOrientation('SW');
+  });
+  expect(result.current.getState().viewOrientation).toBe('SW');
+  act(() => {
+    result.current.getState().actions.setViewOrientation('NE');
+  });
+  expect(result.current.getState().viewOrientation).toBe('NE');
+});

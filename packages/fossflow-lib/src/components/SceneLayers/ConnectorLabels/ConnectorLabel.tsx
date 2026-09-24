@@ -166,7 +166,17 @@ export const ConnectorLabel = memo(({ connector: sceneConnector, groupIndex = 0,
                 borderRadius: 2
               }}
             >
-              <Typography color="text.secondary" variant="body2">
+              <Typography
+                color="text.secondary"
+                variant="body2"
+                sx={{
+                  // Connector label text is single-line by authoring
+                  // (single-line TextField, like free TextBoxes): never
+                  // invent line breaks at whitespace. Node labels are
+                  // untouched (they can contain rich multi-line text).
+                  whiteSpace: 'nowrap'
+                }}
+              >
                 {label.text}
               </Typography>
             </Label>

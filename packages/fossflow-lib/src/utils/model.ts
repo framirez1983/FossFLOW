@@ -58,6 +58,7 @@ export const modelFromModelStore = (modelStore: ModelStore): Model => {
     version: modelStore.version,
     title: modelStore.title,
     description: modelStore.description,
+    labelBackgroundOpacity: modelStore.labelBackgroundOpacity,
     colors: modelStore.colors,
     icons: modelStore.icons,
     items: modelStore.items,

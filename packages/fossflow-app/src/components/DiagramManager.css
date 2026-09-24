@@ -92,6 +92,8 @@
 }
 
 .diagram-manager-actions {
+  display: flex;
+  gap: 8px;
   padding: 20px;
   border-bottom: 1px solid #e0e0e0;
 }
@@ -129,12 +131,12 @@
   background: #da190b;
 }
 
-.action-button.share {
+.action-button.transfer {
   background: #2196f3;
   color: white;
 }
 
-.action-button.share:hover {
+.action-button.transfer:hover {
   background: #0b7dda;
 }
 

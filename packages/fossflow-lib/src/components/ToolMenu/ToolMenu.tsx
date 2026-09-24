@@ -1,5 +1,5 @@
-import React, { useCallback } from 'react';
-import { Stack, Divider } from '@mui/material';
+import React, { useCallback, useState } from 'react';
+import { Stack, Divider, Menu, MenuItem, ListItemText } from '@mui/material';
 import {
   PanToolOutlined as PanToolIcon,
   NearMeOutlined as NearMeIcon,
@@ -18,12 +18,15 @@ import { IconButton } from 'src/components/IconButton/IconButton';
 import { UiElement } from 'src/components/UiElement/UiElement';
 import { useScene } from 'src/hooks/useScene';
 import { useHistory } from 'src/hooks/useHistory';
+import { useModelStoreApi } from 'src/stores/modelStore';
+import { ExistingItemPicker } from 'src/components/ExistingItemPicker/ExistingItemPicker';
+import { ItemManager } from 'src/components/ItemManager/ItemManager';
 import { TEXTBOX_DEFAULTS } from 'src/config';
 import { generateId } from 'src/utils';
 import { HOTKEY_PROFILES } from 'src/config/hotkeys';
 
 export const ToolMenu = () => {
-  const { createTextBox } = useScene();
+  const { createTextBox, currentView } = useScene();
   const { undo, redo, canUndo, canRedo } = useHistory();
   const mode = useUiStateStore((state) => {
     return state.mode;
@@ -39,6 +42,56 @@ export const ToolMenu = () => {
   });
 
   const hotkeys = HOTKEY_PROFILES[hotkeyProfile];
+
+  const [addMenuAnchor, setAddMenuAnchor] = useState<HTMLElement | null>(null);
+  const [isManageItemsOpen, setIsManageItemsOpen] = useState(false);
+  const isExistingItemPickerOpen = useUiStateStore((state) => {
+    return state.isExistingItemPickerOpen;
+  });
+  const modelStoreApi = useModelStoreApi();
+
+  const addItemKey = hotkeys.addItem ? hotkeys.addItem.toUpperCase() : null;
+
+  const handleNewItem = useCallback(() => {
+    setAddMenuAnchor(null);
+    uiStateStoreActions.setItemControls({
+      type: 'ADD_ITEM'
+    });
+    uiStateStoreActions.setMode({
+      type: 'PLACE_ICON',
+      showCursor: true,
+      id: null
+    });
+  }, [uiStateStoreActions]);
+
+  const handleExistingItem = useCallback(() => {
+    setAddMenuAnchor(null);
+    uiStateStoreActions.setIsExistingItemPickerOpen(true);
+  }, [uiStateStoreActions]);
+
+  const handleManageItems = useCallback(() => {
+    setAddMenuAnchor(null);
+    setIsManageItemsOpen(true);
+  }, []);
+
+  const handlePickExistingItem = useCallback(
+    (modelItemId: string) => {
+      const modelItem = modelStoreApi
+        .getState()
+        .items.find((item) => item.id === modelItemId);
+
+      uiStateStoreActions.setIsExistingItemPickerOpen(false);
+      // Arm canvas placement for the existing item (ViewItem only).
+      uiStateStoreActions.setMode({
+        type: 'PLACE_ICON',
+        showCursor: true,
+        id: modelItem?.icon ?? null,
+        existingModelItemId: modelItemId
+      });
+      uiStateStoreActions.setItemControls(null);
+    },
+    [modelStoreApi, uiStateStoreActions]
+  );
 
   const handleUndo = useCallback(() => {
     undo();
@@ -135,19 +188,48 @@ export const ToolMenu = () => {
           isActive={mode.type === 'PAN'}
         />
         <IconButton
-          name={`Add item${hotkeys.addItem ? ` (${hotkeys.addItem.toUpperCase()})` : ''}`}
+          name={`Add item${addItemKey ? ` (${addItemKey})` : ''}`}
           Icon={<AddIcon />}
-          onClick={() => {
-            uiStateStoreActions.setItemControls({
-              type: 'ADD_ITEM'
-            });
-            uiStateStoreActions.setMode({
-              type: 'PLACE_ICON',
-              showCursor: true,
-              id: null
-            });
+          onClick={(event) => {
+            setAddMenuAnchor(event.currentTarget);
           }}
           isActive={mode.type === 'PLACE_ICON'}
+        />
+        <Menu
+          anchorEl={addMenuAnchor}
+          open={Boolean(addMenuAnchor)}
+          onClose={() => {
+            setAddMenuAnchor(null);
+          }}
+        >
+          <MenuItem onClick={handleNewItem}>
+            <ListItemText>
+              {`New item${addItemKey ? ` (${addItemKey})` : ''}`}
+            </ListItemText>
+          </MenuItem>
+          <MenuItem onClick={handleExistingItem}>
+            <ListItemText>
+              {`Existing item${addItemKey ? ` (Shift+${addItemKey})` : ''}`}
+            </ListItemText>
+          </MenuItem>
+          <Divider />
+          <MenuItem onClick={handleManageItems}>
+            <ListItemText>Manage items…</ListItemText>
+          </MenuItem>
+        </Menu>
+        <ExistingItemPicker
+          open={isExistingItemPickerOpen}
+          activeViewItemIds={(currentView?.items ?? []).map((item) => item.id)}
+          onPick={handlePickExistingItem}
+          onClose={() => {
+            uiStateStoreActions.setIsExistingItemPickerOpen(false);
+          }}
+        />
+        <ItemManager
+          open={isManageItemsOpen}
+          onClose={() => {
+            setIsManageItemsOpen(false);
+          }}
         />
         <IconButton
           name={`Rectangle${hotkeys.rectangle ? ` (${hotkeys.rectangle.toUpperCase()})` : ''}`}

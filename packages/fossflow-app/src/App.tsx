@@ -5,6 +5,11 @@ import isoflowIsopack from '@isoflow/isopacks/dist/isoflow';
 import { useTranslation } from 'react-i18next';
 import {
   DiagramData,
+  StorageOrigin,
+  SERVER_CONTEXT_STORAGE_KEY,
+  buildServerDocumentContext,
+  readServerDocumentContext,
+  isServerBackedDiagram,
   mergeDiagramData,
   extractSavableData
 } from './diagramUtils';
@@ -26,6 +31,10 @@ interface SavedDiagram {
   data: any;
   createdAt: string;
   updatedAt: string;
+  // Where this document came from. 'server' documents retain their server ID
+  // and can be updated in place; everything else saves to session/local.
+  // Absent (older saves) means non-server.
+  storageOrigin?: StorageOrigin;
 }
 
 function App() {
@@ -180,6 +189,7 @@ function EditorPage() {
     // Load last opened diagram metadata (data is already loaded in state initialization)
     const lastOpenedId = localStorage.getItem('fossflow-last-opened');
 
+    let restoredFromSessionList = false;
     if (lastOpenedId && savedDiagrams) {
       try {
         const allDiagrams = JSON.parse(savedDiagrams);
@@ -191,9 +201,37 @@ function EditorPage() {
           setDiagramName(lastDiagram.name);
           // Also set currentModel to match diagramData
           setCurrentModel(diagramData);
+          restoredFromSessionList = true;
         }
       } catch (e) {
         console.error('Failed to restore last diagram metadata:', e);
+      }
+    }
+
+    if (!restoredFromSessionList) {
+      // No session entry claimed the last-opened document: it may be a
+      // server-backed document restored from the working-document cache.
+      // Only an explicit, well-formed server context matching the last-opened
+      // ID restores server identity; anything else stays non-server-backed.
+      const serverContext = readServerDocumentContext(
+        localStorage.getItem(SERVER_CONTEXT_STORAGE_KEY),
+        lastOpenedId
+      );
+      if (serverContext) {
+        const restoredName =
+          serverContext.name || diagramData.title || 'Loaded Diagram';
+        setCurrentDiagram({
+          id: serverContext.id,
+          name: restoredName,
+          data: diagramData,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          storageOrigin: 'server'
+        });
+        setDiagramName(restoredName);
+        setCurrentModel(diagramData);
+      } else {
+        localStorage.removeItem(SERVER_CONTEXT_STORAGE_KEY);
       }
     }
   }, []);
@@ -260,6 +298,9 @@ function EditorPage() {
       colors: currentModel?.colors || diagramData.colors || [],
       items: currentModel?.items || diagramData.items || [],
       views: currentModel?.views || diagramData.views || [],
+      labelBackgroundOpacity:
+        currentModel?.labelBackgroundOpacity ??
+        diagramData.labelBackgroundOpacity,
       fitToScreen: true
     };
 
@@ -268,7 +309,8 @@ function EditorPage() {
       name: diagramName,
       data: savedData,
       createdAt: currentDiagram?.createdAt || new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
+      storageOrigin: 'session'
     };
 
     if (currentDiagram) {
@@ -303,6 +345,10 @@ function EditorPage() {
     setHasUnsavedChanges(false);
     setLastAutoSave(new Date());
 
+    // The working document is now session-backed, even if it started life as
+    // a server document: drop any persisted server identity.
+    localStorage.removeItem(SERVER_CONTEXT_STORAGE_KEY);
+
     // Save as last opened
     try {
       localStorage.setItem('fossflow-last-opened', newDiagram.id);
@@ -316,6 +362,57 @@ function EditorPage() {
         alert(t('alert.storageFull'));
         setShowStorageManager(true);
       }
+    }
+  };
+
+  /**
+   * Unified top-level Save.
+   * - Server-backed document (loaded from Server Storage): overwrite that
+   *   same server diagram via the existing PUT endpoint. Never invents an ID.
+   * - Anything else: preserve the existing session/local save workflow.
+   */
+  const saveToServerStorage = async (): Promise<boolean> => {
+    if (!isServerBackedDiagram(currentDiagram)) return false;
+
+    try {
+      const storage = storageManager.getStorage();
+      if (!storageManager.isServerStorage()) {
+        throw new Error(t('alert.serverStorageUnavailable'));
+      }
+
+      const dataToSave = {
+        ...(currentModel || diagramData),
+        name: currentDiagram.name
+      };
+      await storage.saveDiagram(currentDiagram.id, dataToSave);
+
+      setCurrentDiagram({
+        ...currentDiagram,
+        updatedAt: new Date().toISOString()
+      });
+      setHasUnsavedChanges(false);
+      return true;
+    } catch (err) {
+      console.error('Failed to save diagram to server storage:', err);
+      alert(t('alert.serverSaveFailed'));
+      return false;
+    }
+  };
+
+  const handleUnifiedSave = async () => {
+    if (isServerBackedDiagram(currentDiagram)) {
+      // Server document: save back to the same server diagram when dirty.
+      if (hasUnsavedChanges) {
+        await saveToServerStorage();
+      }
+      return;
+    }
+
+    // Session/local/new document: unchanged legacy behavior.
+    if (currentDiagram && hasUnsavedChanges) {
+      saveDiagram();
+    } else {
+      setShowSaveDialog(true);
     }
   };
 
@@ -344,7 +441,13 @@ function EditorPage() {
       icons: mergedIcons
     };
 
-    setCurrentDiagram(diagram);
+    // Session Load dialog lists localStorage diagrams only: always mark the
+    // loaded document as session-backed, regardless of any stored flag, so a
+    // crafted entry can never route a server PUT.
+    setCurrentDiagram({ ...diagram, storageOrigin: 'session' });
+    // A session/local load supersedes any previously persisted server
+    // identity for the working document.
+    localStorage.removeItem(SERVER_CONTEXT_STORAGE_KEY);
     setDiagramName(diagram.name);
     setDiagramData(dataWithIcons);
     setCurrentModel(dataWithIcons);
@@ -376,6 +479,7 @@ function EditorPage() {
       if (currentDiagram?.id === id) {
         setCurrentDiagram(null);
         setDiagramName('');
+        localStorage.removeItem(SERVER_CONTEXT_STORAGE_KEY);
       }
     }
   };
@@ -406,6 +510,7 @@ function EditorPage() {
       // Clear last opened
       localStorage.removeItem('fossflow-last-opened');
       localStorage.removeItem('fossflow-last-opened-data');
+      localStorage.removeItem(SERVER_CONTEXT_STORAGE_KEY);
     }
   };
 
@@ -420,6 +525,7 @@ function EditorPage() {
       colors: model.colors || defaultColors,
       items: model.items || [],
       views: model.views || [],
+      labelBackgroundOpacity: model.labelBackgroundOpacity,
       fitToScreen: true
     };
 
@@ -557,7 +663,12 @@ function EditorPage() {
       name: data.name || 'Loaded Diagram',
       data: mergedData,
       createdAt: data.created || new Date().toISOString(),
-      updatedAt: data.lastModified || new Date().toISOString()
+      updatedAt: data.lastModified || new Date().toISOString(),
+      // Retain the server ID only when actually loaded from Server Storage,
+      // so Save updates the same server diagram. Session loads stay local.
+      storageOrigin: (storageManager.isServerStorage()
+        ? 'server'
+        : 'session') as StorageOrigin
     };
 
     console.log(`App: Setting all state for diagram ${id}`);
@@ -581,6 +692,27 @@ function EditorPage() {
     console.log(
       `App: Finished loading diagram ${id}, final icon count: ${finalIcons.length}`
     );
+
+    // Persist working-document context for reload restore. Server-backed
+    // documents remember their server ID (separate from the diagram/model
+    // JSON); session loads clear any previously persisted server identity.
+    try {
+      localStorage.setItem('fossflow-last-opened', id);
+      localStorage.setItem(
+        'fossflow-last-opened-data',
+        JSON.stringify(mergedData)
+      );
+      if (newDiagram.storageOrigin === 'server') {
+        localStorage.setItem(
+          SERVER_CONTEXT_STORAGE_KEY,
+          JSON.stringify(buildServerDocumentContext(id, newDiagram.name))
+        );
+      } else {
+        localStorage.removeItem(SERVER_CONTEXT_STORAGE_KEY);
+      }
+    } catch (e) {
+      console.error('Failed to persist last opened diagram context:', e);
+    }
   };
 
   // i18n
@@ -609,6 +741,7 @@ function EditorPage() {
         colors: currentModel.colors || [],
         items: currentModel.items || [],
         views: currentModel.views || [],
+        labelBackgroundOpacity: currentModel.labelBackgroundOpacity,
         fitToScreen: true
       };
 
@@ -665,17 +798,10 @@ function EditorPage() {
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Ctrl+S or Cmd+S for Save
+      // Ctrl+S or Cmd+S for Save (unified: server-backed or session)
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
         e.preventDefault();
-
-        // Quick save if current diagram exists and has unsaved changes
-        if (currentDiagram && hasUnsavedChanges) {
-          saveDiagram();
-        } else {
-          // Otherwise show save dialog
-          setShowSaveDialog(true);
-        }
+        handleUnifiedSave();
       }
 
       // Ctrl+O or Cmd+O for Open/Load
@@ -689,7 +815,7 @@ function EditorPage() {
     return () => {
       return window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [currentDiagram, hasUnsavedChanges]);
+  }, [currentDiagram, hasUnsavedChanges, currentModel, diagramData]);
 
   return (
     <div className="App">
@@ -731,9 +857,7 @@ function EditorPage() {
             </button>
             <button
               onClick={() => {
-                if (currentDiagram && hasUnsavedChanges) {
-                  saveDiagram();
-                }
+                handleUnifiedSave();
               }}
               disabled={!currentDiagram || !hasUnsavedChanges}
               style={{
@@ -745,9 +869,15 @@ function EditorPage() {
                     ? 'pointer'
                     : 'not-allowed'
               }}
-              title="Save to current session only"
+              title={
+                isServerBackedDiagram(currentDiagram)
+                  ? t('nav.saveServerTitle')
+                  : 'Save to current session only'
+              }
             >
-              {t('nav.quickSaveSession')}
+              {isServerBackedDiagram(currentDiagram)
+                ? t('nav.saveServer')
+                : t('nav.quickSaveSession')}
             </button>
           </>
         )}
@@ -783,7 +913,11 @@ function EditorPage() {
               <span
                 style={{ fontSize: '12px', color: '#666', marginLeft: '10px' }}
               >
-                ({t('status.sessionStorageNote')})
+                (
+                {isServerBackedDiagram(currentDiagram)
+                  ? t('status.serverStorageNote')
+                  : t('status.sessionStorageNote')}
+                )
               </span>
             </>
           )}

@@ -1,10 +1,27 @@
-import type { EditorModeEnum, MainMenuOptions } from './common';
+import type { EditorModeEnum, MainMenuOptions, Size } from './common';
 import type { Model } from './model';
 import type { RendererProps } from './rendererProps';
+import type { ViewOrientation } from './ui';
 
 export type InitialData = Model & {
   fitToView?: boolean;
   view?: string;
+  /**
+   * Ephemeral, export-only snapshot of already-resolved TextBox sizes
+   * ({ textboxId: size }). Never persisted: it is stripped by validation
+   * and never copied into saved/exported models. Lets a hidden renderer
+   * reuse editor layout instead of re-measuring independently.
+   */
+  textBoxSizes?: {
+    [key: string]: Size;
+  };
+  /**
+   * Ephemeral, export-only view orientation override. Applied to UI state
+   * during load (before scene sync and fit-to-view) so an isolated renderer
+   * matches the visible editor. Never persisted: not part of the zod model,
+   * save paths, history, or validation.
+   */
+  viewOrientation?: ViewOrientation;
 };
 
 export interface LocaleProps {
@@ -16,7 +33,6 @@ export interface LocaleProps {
     redo: string;
     open: string;
     exportJson: string;
-    exportCompactJson: string;
     exportImage: string;
     clearCanvas: string;
     settings: string;

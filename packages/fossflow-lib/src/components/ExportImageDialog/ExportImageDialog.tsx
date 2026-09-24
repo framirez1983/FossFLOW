@@ -22,12 +22,13 @@ import {
   FormControl
 } from '@mui/material';
 import { useModelStore } from 'src/stores/modelStore';
+import { useSceneStore } from 'src/stores/sceneStore';
 import {
   exportAsImage,
   exportAsSVG,
   downloadFile as downloadFileUtil,
   base64ToBlob,
-  generateGenericFilename,
+  generateExportFilename,
   modelFromModelStore
 } from 'src/utils';
 import { ModelStore, Size, Coords } from 'src/types';
@@ -55,12 +56,30 @@ export const ExportImageDialog = ({ onClose, quality = 1.5 }: Props) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const cropCanvasRef = useRef<HTMLCanvasElement>(null);
   const isExporting = useRef<boolean>(false);
+  const exportTreeReadyRef = useRef<boolean>(false);
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState<Coords | null>(null);
   const currentView = useUiStateStore((state) => state.view);
+  const editorViewOrientation = useUiStateStore(
+    (state) => state.viewOrientation
+  );
+  const activeViewName = useModelStore((state) => {
+    return state.views.find((view) => view.id === currentView)?.name;
+  });
   const labelBackgroundOpacity = useUiStateStore(
     (state) => state.labelSettings.backgroundOpacity
   );
+  // Already-resolved TextBox geometry from the live editor scene. Passing it
+  // into the hidden renderer means export reuses the editor's layout instead
+  // of measuring TextBoxes a second time (WHAT YOU SEE IS WHAT YOU EXPORT).
+  const liveTextBoxSizes = useSceneStore((state) => state.textBoxes);
+  const textBoxSizes = useMemo(() => {
+    const sizes: { [key: string]: Size } = {};
+    for (const [id, entry] of Object.entries(liveTextBoxSizes)) {
+      sizes[id] = entry.size;
+    }
+    return sizes;
+  }, [liveTextBoxSizes]);
   const [imageData, setImageData] = React.useState<string>();
   const [svgData, setSvgData] = useState<string>();
   const [croppedImageData, setCroppedImageData] = useState<string>();
@@ -103,7 +122,11 @@ export const ExportImageDialog = ({ onClose, quality = 1.5 }: Props) => {
   );
 
   const exportImage = useCallback(async () => {
-    if (!containerRef.current || isExporting.current) {
+    if (
+      !containerRef.current ||
+      isExporting.current ||
+      !exportTreeReadyRef.current
+    ) {
       return;
     }
 
@@ -340,6 +363,10 @@ export const ExportImageDialog = ({ onClose, quality = 1.5 }: Props) => {
   };
 
   const [expandLabels, setExpandLabels] = useState(true);
+  // Set when the hidden export Isoflow finishes loading its model, so the
+  // snapshot is only scheduled against a fully built tree (scene sizes
+  // measured, view synced) rather than a fixed delay after mount.
+  const [exportTreeReady, setExportTreeReady] = useState(false);
   const handleExpandLabelsChange = (checked: boolean) => {
     setExpandLabels(checked);
   };
@@ -393,21 +420,23 @@ export const ExportImageDialog = ({ onClose, quality = 1.5 }: Props) => {
       setSvgData(undefined);
       setExportError(false);
       isExporting.current = false;
+      exportTreeReadyRef.current = false;
+      setExportTreeReady(false);
       const timer = setTimeout(() => {
         exportImage();
       }, 200);
       return () => clearTimeout(timer);
     }
-  }, [showGrid, backgroundColor, expandLabels, labelBackgroundOpacity, exportImage, cropToContent, exportScale, transparentBackground]);
+  }, [showGrid, backgroundColor, expandLabels, labelBackgroundOpacity, editorViewOrientation, exportImage, cropToContent, exportScale, transparentBackground]);
 
   useEffect(() => {
-    if (!imageData) {
+    if (!imageData && exportTreeReady) {
       const timer = setTimeout(() => {
         exportImage();
       }, 200);
       return () => clearTimeout(timer);
     }
-  }, [exportImage, imageData]);
+  }, [exportImage, imageData, exportTreeReady]);
 
   const downloadFile = useCallback(() => {
     const dataToDownload = croppedImageData || imageData;
@@ -418,8 +447,14 @@ export const ExportImageDialog = ({ onClose, quality = 1.5 }: Props) => {
       'image/png;charset=utf-8'
     );
 
-    downloadFileUtil(data, generateGenericFilename('png'));
-  }, [imageData, croppedImageData]);
+    downloadFileUtil(
+      data,
+      generateExportFilename('png', {
+        projectTitle: model.title,
+        viewName: activeViewName
+      })
+    );
+  }, [imageData, croppedImageData, model.title, activeViewName]);
 
   const downloadSvgFile = useCallback(async () => {
     if (!svgData) return;
@@ -428,7 +463,13 @@ export const ExportImageDialog = ({ onClose, quality = 1.5 }: Props) => {
       // Fetch the data URL as a blob to handle encoding properly
       const response = await fetch(svgData);
       const blob = await response.blob();
-      downloadFileUtil(blob, generateGenericFilename('svg'));
+      downloadFileUtil(
+        blob,
+        generateExportFilename('svg', {
+          projectTitle: model.title,
+          viewName: activeViewName
+        })
+      );
     } catch (error) {
       console.error('SVG download failed:', error);
       setExportError(true);
@@ -442,15 +483,6 @@ export const ExportImageDialog = ({ onClose, quality = 1.5 }: Props) => {
       <DialogTitle>Export as image</DialogTitle>
       <DialogContent>
         <Stack spacing={2}>
-          <Alert severity="info">
-            <strong>
-              Browser Compatibility Notice
-            </strong>
-            <br />
-            For best results, please use Chrome or Edge. Firefox currently has 
-            compatibility issues with the export feature.
-          </Alert>
-
           {!imageData && (
             <>
               <Box
@@ -480,13 +512,19 @@ export const ExportImageDialog = ({ onClose, quality = 1.5 }: Props) => {
                       initialData={{
                         ...model,
                         fitToView: true,
-                        view: currentView
+                        view: currentView,
+                        textBoxSizes,
+                        viewOrientation: editorViewOrientation
                       }}
                       renderer={{
                         showGrid,
                         backgroundColor,
                         expandLabels,
                         labelBackgroundOpacity
+                      }}
+                      onModelUpdated={() => {
+                        exportTreeReadyRef.current = true;
+                        setExportTreeReady(true);
                       }}
                     />
                   </DOMErrorBoundary>
@@ -713,13 +751,13 @@ export const ExportImageDialog = ({ onClose, quality = 1.5 }: Props) => {
                     onClick={downloadSvgFile}
                     disabled={!svgData || (cropToContent && isInCropMode && !croppedImageData)}
                   >
-                    Download as SVG
+                    Export as SVG
                   </Button>
                   <Button
                     onClick={downloadFile}
                     disabled={cropToContent && isInCropMode && !croppedImageData}
                   >
-                    Download as PNG
+                    Export as PNG
                   </Button>
                 </Stack>
               </Stack>

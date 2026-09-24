@@ -95,6 +95,7 @@ export const INITIAL_DATA: InitialData = {
   colors: [DEFAULT_COLOR],
   items: [],
   views: [],
+  labelBackgroundOpacity: 1,
   fitToView: false
 };
 export const INITIAL_UI_STATE = {
