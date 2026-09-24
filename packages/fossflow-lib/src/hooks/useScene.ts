@@ -3,6 +3,7 @@ import { shallow } from 'zustand/shallow';
 import {
   ModelItem,
   ViewItem,
+  View,
   Connector,
   TextBox,
   Rectangle,
@@ -23,6 +24,26 @@ import {
   TEXTBOX_DEFAULTS,
   VIEW_ITEM_DEFAULTS
 } from 'src/config';
+
+/**
+ * Human-readable unique name for a duplicated view: "<name> Copy",
+ * then "<name> Copy 2", "<name> Copy 3", ... A trailing " Copy" suffixed
+ * with an optional number is stripped first so re-duplicating numbered
+ * copies keeps counting up instead of nesting suffixes. Comparison is
+ * case-sensitive, consistent with id lookups elsewhere.
+ */
+const uniqueViewCopyName = (views: View[], name: string): string => {
+  const stem = name.replace(/ Copy( \d+)?$/, '');
+  const taken = new Set(views.map((view) => view.name));
+  const base = `${stem} Copy`;
+  if (!taken.has(base)) return base;
+
+  let counter = 2;
+  while (taken.has(`${base} ${counter}`)) {
+    counter += 1;
+  }
+  return `${base} ${counter}`;
+};
 
 export const useScene = () => {
   const { views, colors, icons, items, version, title, description } =
@@ -296,6 +317,118 @@ export const useScene = () => {
       return id;
     },
     [getState, setState, saveToHistoryBeforeChange]
+  );
+
+  const duplicateView = useCallback(
+    (id: string): string | null => {
+      const stateToUse = getState();
+      const existing = getItemById(stateToUse.model.views, id);
+      if (!existing) return null;
+
+      const source = existing.value;
+
+      // View-owned entities get fresh ids; global ModelItem references stay.
+      const anchorIdMap = new Map<string, string>();
+      const connectors = (source.connectors ?? []).map((connector) => {
+        const connectorId = generateId();
+        const anchors = connector.anchors.map((anchor) => {
+          const anchorId = generateId();
+          anchorIdMap.set(anchor.id, anchorId);
+          return { ...anchor, id: anchorId, ref: { ...anchor.ref } };
+        });
+        return {
+          ...connector,
+          id: connectorId,
+          anchors,
+          labels: (connector.labels ?? []).map((label) => {
+            return { ...label, id: generateId() };
+          })
+        };
+      });
+      // Re-point intra-connector anchor references at the fresh anchor ids.
+      // References outside the connector (if any) keep pointing at the
+      // originals, which still exist.
+      for (const connector of connectors) {
+        for (const anchor of connector.anchors) {
+          if (
+            anchor.ref.anchor &&
+            anchorIdMap.has(anchor.ref.anchor)
+          ) {
+            anchor.ref = { ...anchor.ref, anchor: anchorIdMap.get(anchor.ref.anchor) };
+          }
+        }
+      }
+
+      const newView = {
+        name: uniqueViewCopyName(
+          stateToUse.model.views,
+          source.name
+        ),
+        description: source.description,
+        items: source.items.map((item) => ({ ...item })),
+        connectors,
+        rectangles: (source.rectangles ?? []).map((rectangle) => {
+          return {
+            ...rectangle,
+            id: generateId(),
+            from: { ...rectangle.from },
+            to: { ...rectangle.to }
+          };
+        }),
+        textBoxes: (source.textBoxes ?? []).map((textBox) => {
+          return { ...textBox, id: generateId(), tile: { ...textBox.tile } };
+        })
+      };
+
+      if (!transactionInProgress.current) {
+        saveToHistoryBeforeChange();
+      }
+
+      const newId = generateId();
+      const newState = reducers.view({
+        action: 'CREATE_VIEW',
+        payload: newView,
+        ctx: { viewId: newId, state: stateToUse }
+      });
+      setState(newState);
+      return newId;
+    },
+    [getState, setState, saveToHistoryBeforeChange]
+  );
+
+  const deleteView = useCallback(
+    (id: string): { deleted: boolean; switchToId: string | null } => {
+      const stateToUse = getState();
+      const views = stateToUse.model.views;
+      const index = views.findIndex((view) => view.id === id);
+
+      // Defensive: unknown id, or refusing to delete the last view.
+      if (index === -1 || views.length <= 1) {
+        return { deleted: false, switchToId: null };
+      }
+
+      if (!transactionInProgress.current) {
+        saveToHistoryBeforeChange();
+      }
+
+      const newState = reducers.view({
+        action: 'DELETE_VIEW',
+        payload: undefined,
+        ctx: { viewId: id, state: stateToUse }
+      });
+      setState(newState);
+
+      // Nearest remaining view in array order: the entry sliding into the
+      // removed index, else its left neighbour. Null when the deleted view
+      // was not active (caller keeps the current view).
+      if (id !== currentViewId) {
+        return { deleted: true, switchToId: null };
+      }
+      const replacement =
+        views[index + 1] ?? views[index - 1] ?? null;
+      return { deleted: true, switchToId: replacement?.id ?? null };
+    },
+    [getState, setState, currentViewId, saveToHistoryBeforeChange]
   );
 
   const placeExistingItem = useCallback(
@@ -608,6 +741,8 @@ export const useScene = () => {
     deleteModelItem,
     renameView,
     createView,
+    duplicateView,
+    deleteView,
     placeExistingItem,
     createViewItem,
     updateViewItem,

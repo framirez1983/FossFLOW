@@ -11,7 +11,8 @@ import {
   ListItemText,
   Menu,
   MenuItem,
-  TextField
+  TextField,
+  Typography
 } from '@mui/material';
 import { Check, ExpandMore } from '@mui/icons-material';
 import { useModelStore, useModelStoreApi } from 'src/stores/modelStore';
@@ -30,12 +31,13 @@ export const ViewSwitcher = () => {
   const views = useModelStore((state) => state.views);
   const viewId = useUiStateStore((state) => state.view);
   const editorMode = useUiStateStore((state) => state.editorMode);
-  const { currentView, renameView, createView } = useScene();
+  const { currentView, renameView, createView, duplicateView, deleteView } = useScene();
   const { changeView } = useView();
   const modelStoreApi = useModelStoreApi();
 
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
   const [dialogMode, setDialogMode] = useState<NameDialogMode | null>(null);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [draftName, setDraftName] = useState('');
   const [renameError, setRenameError] = useState<string | null>(null);
 
@@ -101,6 +103,28 @@ export const ViewSwitcher = () => {
     setDialogMode(null);
   };
 
+  const handleDuplicateView = () => {
+    if (!activeView) return;
+
+    const id = duplicateView(activeView.id);
+    setMenuAnchor(null);
+    if (id) {
+      changeView(id, modelFromModelStore(modelStoreApi.getState()));
+    }
+  };
+
+  const handleConfirmDeleteView = () => {
+    if (!activeView) return;
+
+    const { deleted, switchToId } = deleteView(activeView.id);
+    setIsDeleteConfirmOpen(false);
+    setMenuAnchor(null);
+    if (!deleted) return;
+    if (switchToId) {
+      changeView(switchToId, modelFromModelStore(modelStoreApi.getState()));
+    }
+  };
+
   return (
     <>
       <Button
@@ -153,6 +177,16 @@ export const ViewSwitcher = () => {
             </ListItemIcon>
             <ListItemText>New view…</ListItemText>
           </MenuItem>,
+          <MenuItem
+            key="duplicate-view"
+            onClick={handleDuplicateView}
+            disabled={!activeView}
+          >
+            <ListItemIcon sx={{ minWidth: 32 }}>
+              <Box width={20} />
+            </ListItemIcon>
+            <ListItemText>Duplicate view</ListItemText>
+          </MenuItem>,
           ...(activeView
             ? [
                 <MenuItem key="rename-view" onClick={handleOpenRename}>
@@ -160,11 +194,55 @@ export const ViewSwitcher = () => {
                     <Box width={20} />
                   </ListItemIcon>
                   <ListItemText>Rename view…</ListItemText>
+                </MenuItem>,
+                <MenuItem
+                  key="delete-view"
+                  disabled={views.length <= 1}
+                  onClick={() => {
+                    setMenuAnchor(null);
+                    setIsDeleteConfirmOpen(true);
+                  }}
+                >
+                  <ListItemIcon sx={{ minWidth: 32 }}>
+                    <Box width={20} />
+                  </ListItemIcon>
+                  <ListItemText>Delete view…</ListItemText>
                 </MenuItem>
               ]
             : [])
         ]}
       </Menu>
+      <Dialog
+        open={isDeleteConfirmOpen}
+        onClose={() => {
+          setIsDeleteConfirmOpen(false);
+        }}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>Delete view</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2">
+            {`Delete view "${activeView?.name ?? ''}"? Its placements, connectors, rectangles and text boxes will be removed. Global items are kept.`}
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => {
+              setIsDeleteConfirmOpen(false);
+            }}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            color="error"
+            onClick={handleConfirmDeleteView}
+          >
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
       <Dialog
         open={dialogMode !== null}
         onClose={() => {

@@ -32,7 +32,20 @@ const buildModel = (): Model => {  return {
       {
         id: 'v1',
         name: 'Main Network',
-        items: [{ id: 'n1', tile: { x: 0, y: 0 } }]
+        description: 'First view notes',
+        items: [{ id: 'n1', tile: { x: 0, y: 0 } }],
+        connectors: [
+          {
+            id: 'c0',
+            anchors: [
+              { id: 'ax0', ref: { item: 'n1' } },
+              { id: 'ax1', ref: { tile: { x: 4, y: 0 } } }
+            ],
+            labels: [{ id: 'lx1', text: 'Link', position: 50 }]
+          }
+        ],
+        rectangles: [{ id: 'r1', from: { x: 0, y: 0 }, to: { x: 2, y: 2 } }],
+        textBoxes: [{ id: 'tb1', tile: { x: 3, y: 3 }, content: 'Note' }]
       },
       {
         id: 'v2',
@@ -63,8 +76,33 @@ const Probe = () => {
 };
 
 describe('ViewSwitcher', () => {
+  const realCreateElement = document.createElement.bind(document);
+
   beforeEach(() => {
-    jest.clearAllMocks();
+    jest.restoreAllMocks();
+    // Deterministic canvas text measurement for scene syncs involving
+    // text boxes (jsdom has no 2d context).
+    jest
+      .spyOn(document, 'createElement')
+      .mockImplementation(((tagName: string, ...rest: unknown[]) => {
+        if (tagName === 'canvas') {
+          return {
+            getContext: () => {
+              return {
+                font: '',
+                measureText: () => {
+                  return { width: 250 };
+                }
+              };
+            },
+            remove: () => {}
+          } as unknown as HTMLCanvasElement;
+        }
+        return (realCreateElement as (...args: unknown[]) => Element)(
+          tagName,
+          ...rest
+        );
+      }) as typeof document.createElement);
   });
 
   const renderSwitcher = () => {
@@ -329,8 +367,15 @@ describe('ViewSwitcher', () => {
         modelApi.getState().views.find((view) => view.id === 'v2')
       )
     ).toBe(otherViewBefore);
-    // No connectors copied into the active view.
-    expect(v1?.connectors ?? []).toEqual([]);
+    // Existing connectors in the active view are preserved untouched.
+    expect(
+      modelApi.getState().views.find((view) => view.id === 'v1')?.connectors
+    ).toEqual([
+      expect.objectContaining({
+        id: 'c0',
+        labels: [expect.objectContaining({ id: 'lx1', text: 'Link' })]
+      })
+    ]);
     // Single undoable mutation.
     expect(modelApi.getState().actions.canUndo()).toBe(true);
   });
@@ -366,6 +411,204 @@ describe('ViewSwitcher', () => {
     const menu = await screen.findByRole('menu');
     expect(within(menu).queryByText('Add existing item…')).toBeNull();
     expect(within(menu).getByText('New view…')).toBeTruthy();
+    expect(within(menu).getByText('Duplicate view')).toBeTruthy();
     expect(within(menu).getByText('Rename view…')).toBeTruthy();
+    expect(within(menu).getByText('Delete view…')).toBeTruthy();
+  });
+
+  it('duplicates the active view with independent view-owned identity', async () => {
+    const { modelApi, uiApi } = renderSwitcher();
+    const itemsBefore = JSON.stringify(modelApi.getState().items);
+
+    fireEvent.click(screen.getByRole('button', { name: /Main Network/ }));
+    const menu = await screen.findByRole('menu');
+    fireEvent.click(within(menu).getByText('Duplicate view'));
+
+    const views = modelApi.getState().views;
+    expect(views).toHaveLength(3);
+    const source = views.find((view) => view.id === 'v1')!;
+    const copy = views[2];
+    expect(copy.name).toBe('Main Network Copy');
+    expect(copy.description).toBe('First view notes');
+    expect(copy.id).not.toBe('v1');
+
+    // Placements reference the same global ids; nothing else is shared.
+    expect(copy.items).toEqual(source.items);
+    expect(copy.items[0]).not.toBe(source.items[0]);
+    expect(JSON.stringify(modelApi.getState().items)).toBe(itemsBefore);
+
+    // View-owned entities: fresh ids, preserved content and topology.
+    expect(copy.connectors).toHaveLength(1);
+    expect(copy.connectors?.[0].id).not.toBe('c0');
+    expect(
+      copy.connectors?.[0].anchors.map((anchor) => anchor.ref)
+    ).toEqual([{ item: 'n1' }, { tile: { x: 4, y: 0 } }]);
+    expect(
+      copy.connectors?.[0].anchors.map((anchor) => anchor.id)
+    ).not.toEqual(['ax0', 'ax1']);
+    expect(copy.connectors?.[0].labels?.[0].text).toBe('Link');
+    expect(copy.connectors?.[0].labels?.[0].id).not.toBe('lx1');
+    expect(copy.rectangles).toHaveLength(1);
+    expect(copy.rectangles?.[0].id).not.toBe('r1');
+    expect(copy.rectangles?.[0].from).toEqual({ x: 0, y: 0 });
+    expect(copy.textBoxes).toHaveLength(1);
+    expect(copy.textBoxes?.[0].id).not.toBe('tb1');
+    expect(copy.textBoxes?.[0].content).toBe('Note');
+
+    // Duplicate becomes active with a single history entry.
+    expect(uiApi.getState().view).toBe(copy.id);
+    expect(modelApi.getState().history.past).toHaveLength(1);
+  });
+
+  it('modifying the duplicate leaves the source view unchanged', async () => {
+    const { modelApi } = renderSwitcher();
+
+    fireEvent.click(screen.getByRole('button', { name: /Main Network/ }));
+    const menu = await screen.findByRole('menu');
+    fireEvent.click(within(menu).getByText('Duplicate view'));
+
+    const copy = modelApi.getState().views[2];
+    const copyBoxId = copy.textBoxes?.[0].id!;
+    act(() => {
+      sceneProbe.updateTextBox(copyBoxId, { content: 'Changed' });
+    });
+
+    expect(
+      modelApi.getState().views
+        .find((view) => view.id === 'v1')
+        ?.textBoxes?.[0].content
+    ).toBe('Note');
+    expect(
+      modelApi.getState().views
+        .find((view) => view.id === copy.id)
+        ?.textBoxes?.[0].content
+    ).toBe('Changed');
+  });
+
+  it('numbers duplicate names Copy, Copy 2, Copy 3', async () => {
+    const { modelApi } = renderSwitcher();
+
+    const openMenuAndDuplicate = async (buttonName: RegExp) => {
+      fireEvent.click(screen.getByRole('button', { name: buttonName }));
+      const menu = await screen.findByRole('menu');
+      fireEvent.click(within(menu).getByText('Duplicate view'));
+    };
+
+    await openMenuAndDuplicate(/Main Network/);
+    expect(
+      modelApi.getState().views.map((view) => view.name)
+    ).toEqual(['Main Network', 'Logical Network', 'Main Network Copy']);
+
+    await openMenuAndDuplicate(/Main Network Copy/);
+    expect(
+      modelApi.getState().views.map((view) => view.name)
+    ).toEqual([
+      'Main Network',
+      'Logical Network',
+      'Main Network Copy',
+      'Main Network Copy 2'
+    ]);
+  });
+
+  it('deletes a non-active view and keeps the current view', async () => {
+    const { modelApi, uiApi } = renderSwitcher();
+    const itemsBefore = JSON.stringify(modelApi.getState().items);
+
+    let result!: { deleted: boolean; switchToId: string | null };
+    act(() => {
+      result = sceneProbe.deleteView('v2');
+    });
+
+    expect(result).toEqual({ deleted: true, switchToId: null });
+    expect(modelApi.getState().views.map((view) => view.id)).toEqual(['v1']);
+    expect(uiApi.getState().view).toBe('v1');
+    expect(JSON.stringify(modelApi.getState().items)).toBe(itemsBefore);
+    expect(modelApi.getState().history.past).toHaveLength(1);
+  });
+
+  it('deletes the active view through the menu and switches deterministically', async () => {
+    const { modelApi, uiApi } = renderSwitcher();
+
+    fireEvent.click(screen.getByRole('button', { name: /Main Network/ }));
+    const menu = await screen.findByRole('menu');
+    fireEvent.click(within(menu).getByText('Delete view…'));
+
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByText(/Delete view "Main Network"\?/)).toBeTruthy();
+    fireEvent.click(within(dialog).getByText('Delete'));
+
+    // v1 (index 0) removed; nearest remaining by array order is old v2.
+    expect(modelApi.getState().views.map((view) => view.id)).toEqual(['v2']);
+    expect(uiApi.getState().view).toBe('v2');
+    expect(
+      modelApi.getState().items.map((item) => item.id)
+    ).toEqual(['n1', 'n2']);
+    expect(modelApi.getState().history.past).toHaveLength(1);
+  });
+
+  it('canceling delete confirmation removes nothing', async () => {
+    const { modelApi, uiApi } = renderSwitcher();
+
+    fireEvent.click(screen.getByRole('button', { name: /Main Network/ }));
+    const menu = await screen.findByRole('menu');
+    fireEvent.click(within(menu).getByText('Delete view…'));
+
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.click(within(dialog).getByText('Cancel'));
+
+    expect(modelApi.getState().views).toHaveLength(2);
+    expect(uiApi.getState().view).toBe('v1');
+    expect(modelApi.getState().actions.canUndo()).toBe(false);
+  });
+
+  it('refuses to delete the last view, in UI and defensively', async () => {
+    const { modelApi, uiApi } = renderSwitcher();
+
+    // Reduce to a single view first.
+    act(() => {
+      expect(sceneProbe.deleteView('v2')).toEqual({
+        deleted: true,
+        switchToId: null
+      });
+    });
+
+    // UI disables the action.
+    fireEvent.click(screen.getByRole('button', { name: /Main Network/ }));
+    const menu = await screen.findByRole('menu');
+    const deleteItem = within(menu).getByText('Delete view…').closest('li');
+    expect(deleteItem?.getAttribute('aria-disabled')).toBe('true');
+
+    // Direct calls are refused without mutating anything.
+    const historyLength = modelApi.getState().history.past.length;
+    let result!: { deleted: boolean; switchToId: string | null };
+    act(() => {
+      result = sceneProbe.deleteView('v1');
+    });
+    expect(result).toEqual({ deleted: false, switchToId: null });
+    expect(modelApi.getState().views.map((view) => view.id)).toEqual(['v1']);
+    expect(uiApi.getState().view).toBe('v1');
+    expect(modelApi.getState().history.past).toHaveLength(historyLength);
+  });
+
+  it('undo restores a deleted view with its contents', async () => {
+    const { modelApi } = renderSwitcher();
+
+    act(() => {
+      sceneProbe.deleteView('v2');
+    });
+    expect(modelApi.getState().views).toHaveLength(1);
+
+    act(() => {
+      expect(modelApi.getState().actions.undo()).toBe(true);
+    });
+
+    const views = modelApi.getState().views;
+    expect(views).toHaveLength(2);
+    expect(views.find((view) => view.id === 'v2')?.name).toBe(
+      'Logical Network'
+    );
+    expect(
+      views.find((view) => view.id === 'v2')?.connectors?.[0].id
+    ).toBe('c1');
   });
 });

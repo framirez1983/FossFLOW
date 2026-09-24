@@ -46,6 +46,10 @@ export const syncScene = ({ viewId, state }: ViewReducerContext): State => {
 };
 
 export const deleteView = (ctx: ViewReducerContext): State => {
+  if (ctx.state.model.views.length <= 1) {
+    throw new Error('Cannot delete the last view.');
+  }
+
   const newState = produce(ctx.state, (draft) => {
     const view = getItemByIdOrThrow(draft.model.views, ctx.viewId);
 
