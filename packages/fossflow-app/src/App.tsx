@@ -848,6 +848,24 @@ function EditorPage() {
     };
   }, [currentDiagram, hasUnsavedChanges, currentModel, diagramData]);
 
+  // The MainMenu custom items are memoized for identity stability, so they
+  // must not close over per-render handlers directly. This ref always points
+  // at the latest handlers (fresh currentModel/currentDiagram closures).
+  const menuActionsRef = useRef({
+    newDiagram,
+    openFileDiagram,
+    handleUnifiedSave,
+    exportDiagram
+  });
+  useEffect(() => {
+    menuActionsRef.current = {
+      newDiagram,
+      openFileDiagram,
+      handleUnifiedSave,
+      exportDiagram
+    };
+  });
+
   const menuItems = useMemo(
     () => {
       return {
@@ -856,14 +874,14 @@ function EditorPage() {
             id: 'new-diagram',
             label: t('nav.newDiagram'),
             onSelect: () => {
-              newDiagram();
+              menuActionsRef.current.newDiagram();
             }
           },
           {
             id: 'open-file',
             label: t('menu.openFile'),
             onSelect: () => {
-              openFileDiagram();
+              menuActionsRef.current.openFileDiagram();
             }
           },
           {
@@ -871,7 +889,7 @@ function EditorPage() {
             label: t('menu.save'),
             shortcut: 'Ctrl+S',
             onSelect: () => {
-              void handleUnifiedSave();
+              void menuActionsRef.current.handleUnifiedSave();
             }
           },
           {
@@ -879,7 +897,7 @@ function EditorPage() {
             label: t('nav.exportFile'),
             dividerBefore: true,
             onSelect: () => {
-              exportDiagram();
+              menuActionsRef.current.exportDiagram();
             }
           }
         ],
