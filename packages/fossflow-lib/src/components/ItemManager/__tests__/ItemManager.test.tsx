@@ -240,3 +240,109 @@ describe('ItemManager', () => {
     expect(sceneProbe.items.map((item) => item.id)).toEqual(['n1']);
   });
 });
+
+describe('ItemManager Icon Library', () => {
+  const LIB_URL = 'data:image/svg+xml;base64,PHN2Zz48L3N2Zz4=';
+
+  const buildLibraryModel = (): Model => {
+    return {
+      ...buildModel(),
+      icons: [
+        {
+          id: 'imported-icon-1',
+          name: 'Custom Icon',
+          url: LIB_URL,
+          collection: 'imported',
+          isIsometric: true
+        },
+        {
+          id: 'core-icon-1',
+          name: 'Core Server',
+          url: 'https://example.com/server.svg',
+          collection: 'isoflow',
+          isIsometric: true
+        }
+      ],
+      items: [
+        { id: 'n1', name: 'Custom Item', icon: 'imported-icon-1' },
+        { id: 'n2', name: 'Core Item', icon: 'core-icon-1' },
+        { id: 'n3', name: 'Iconless Item' }
+      ]
+    };
+  };
+
+  const renderLibraryManager = (manager: any) => {
+    const rendered = renderManager();
+    act(() => {
+      rendered.modelApi.getState().actions.set(buildLibraryModel(), true);
+      rendered.uiApi.getState().actions.setLibraryManager(manager);
+    });
+    return rendered;
+  };
+
+  const makeManager = (overrides?: any) => {
+    return {
+      icons: [],
+      loading: false,
+      error: null,
+      unavailable: false,
+      refresh: jest.fn(),
+      addIcon: jest.fn(async () => {
+        return { entry: { id: 'lib_x' }, duplicate: false };
+      }),
+      renameIcon: jest.fn(),
+      deleteIcon: jest.fn(),
+      isInLibrary: jest.fn(() => false),
+      ...overrides
+    };
+  };
+
+  it('exposes Add to Library only for imported-icon items', () => {
+    renderLibraryManager(makeManager());
+
+    expect(
+      screen.getByLabelText('Add icon of Custom Item to Library')
+    ).toBeTruthy();
+    expect(
+      screen.queryByLabelText('Add icon of Core Item to Library')
+    ).toBeNull();
+    expect(
+      screen.queryByLabelText('Add icon of Iconless Item to Library')
+    ).toBeNull();
+  });
+
+  it('adds the icon asset (not the ModelItem) and confirms', async () => {
+    const manager = makeManager();
+    renderLibraryManager(manager);
+
+    fireEvent.click(
+      screen.getByLabelText('Add icon of Custom Item to Library')
+    );
+
+    expect(manager.addIcon).toHaveBeenCalledTimes(1);
+    expect(manager.addIcon.mock.calls[0][0]).toMatchObject({
+      id: 'imported-icon-1',
+      url: LIB_URL,
+      collection: 'imported'
+    });
+  });
+
+  it('shows In Library instead of the action when already present', () => {
+    renderLibraryManager(makeManager({ isInLibrary: () => true }));
+
+    expect(
+      screen.queryByLabelText('Add icon of Custom Item to Library')
+    ).toBeNull();
+    expect(screen.getByText('In Library')).toBeTruthy();
+  });
+
+  it('hides library actions when the server is unavailable', () => {
+    renderLibraryManager(makeManager({ unavailable: true }));
+
+    expect(
+      screen.queryByLabelText('Add icon of Custom Item to Library')
+    ).toBeNull();
+    // Delete semantics are unchanged.
+    expect(screen.getByLabelText('Delete Custom Item')).toBeTruthy();
+  });
+});

@@ -11,7 +11,11 @@ import { useIconCategories } from 'src/hooks/useIconCategories';
 import { Close as CloseIcon, FileUpload as FileUploadIcon } from '@mui/icons-material';
 import { Icons } from './Icons';
 import { IconGrid } from './IconGrid';
+import { IconCollection } from './IconCollection';
 import { generateId } from 'src/utils';
+import { copyLibraryIconToProject } from 'src/utils/iconLibrary';
+import type { LibraryIcon } from 'src/types/library';
+import { normalizeUserIconFiles } from 'src/utils/normalizeUserIcons';
 import {
   ICON_NAME_MAX_LENGTH,
   countIconUsage,
@@ -27,6 +31,7 @@ export const IconSelectionControls = () => {
     return state.mode;
   });
   const iconCategoriesState = useUiStateStore((state) => state.iconCategoriesState);
+  const libraryManager = useUiStateStore((state) => state.libraryManager);
   const modelActions = useModelStore((state) => state.actions);
   const currentIcons = useModelStore((state) => state.icons);
   const modelItems = useModelStore((state) => state.items);
@@ -45,14 +50,81 @@ export const IconSelectionControls = () => {
     (icon: Icon) => {
       if (mode.type !== 'PLACE_ICON') return;
 
+      // Library tiles are server assets, not project icons: copy the asset
+      // into the project first, then arm placement with the project copy.
+      if (icon.collection === 'library' && libraryManager) {
+        const entry = libraryManager.icons.find((item) => {
+          return item.id === icon.id;
+        });
+        if (!entry) return;
+        const { icons, iconId } = copyLibraryIconToProject(
+          currentIcons,
+          entry
+        );
+        modelActions.set({ icons });
+        uiStateActions.setMode({
+          type: 'PLACE_ICON',
+          showCursor: true,
+          id: iconId
+        });
+        return;
+      }
+
       uiStateActions.setMode({
         type: 'PLACE_ICON',
         showCursor: true,
         id: icon.id
       });
     },
-    [mode, uiStateActions]
+    [mode, uiStateActions, libraryManager, currentIcons, modelActions]
   );
+
+  const [libraryNotice, setLibraryNotice] = useState<string | null>(null);
+
+  const handleAddToLibrary = useCallback(
+    async (icon: Icon) => {
+      if (!libraryManager || icon.collection !== 'imported') return;
+      try {
+        const { duplicate } = await libraryManager.addIcon(icon);
+        setLibraryNotice(
+          duplicate
+            ? `"${icon.name}" is already in the Library`
+            : `"${icon.name}" added to the Library`
+        );
+      } catch {
+        setLibraryNotice(`Could not add "${icon.name}" to the Library`);
+      }
+    },
+    [libraryManager]
+  );
+
+  const showLibrarySection =
+    libraryManager !== null &&
+    !libraryManager.unavailable &&
+    libraryManager.icons.length > 0;
+
+  const toLibraryTiles = useCallback((entries: LibraryIcon[]): Icon[] => {
+    return entries.map((entry) => {
+      return {
+        id: entry.id,
+        name: entry.name,
+        url: entry.url,
+        collection: 'library',
+        isIsometric: entry.isIsometric,
+        ...(entry.scale !== undefined ? { scale: entry.scale } : {})
+      };
+    });
+  }, []);
+
+  const libraryMatches = useCallback(() => {
+    if (!libraryManager || filter === '') return [];
+    const needle = filter.toLowerCase();
+    return toLibraryTiles(
+      libraryManager.icons.filter((entry) => {
+        return entry.name.toLowerCase().includes(needle);
+      })
+    );
+  }, [libraryManager, filter, toLibraryTiles]);
 
   const handleImportClick = useCallback(() => {
     fileInputRef.current?.click();
@@ -111,106 +183,26 @@ export const IconSelectionControls = () => {
     const files = event.target.files;
     if (!files || files.length === 0) return;
 
-    const newIcons: Icon[] = [];
-    const existingNames = new Set(currentIcons.map(icon => icon.name.toLowerCase()));
-
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      
-      // Check if file is an image
-      if (!file.type.startsWith('image/')) {
-        console.warn(`Skipping non-image file: ${file.name}`);
-        continue;
-      }
-
-      // Generate unique name
-      let baseName = file.name.replace(/\.[^/.]+$/, ''); // Remove extension
-      let finalName = baseName;
-      let counter = 1;
-      
-      while (existingNames.has(finalName.toLowerCase())) {
-        finalName = `${baseName}_${counter}`;
-        counter++;
-      }
-      
-      existingNames.add(finalName.toLowerCase());
-
-      // Load and scale the image
-      const dataUrl = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = async (e) => {
-          const originalDataUrl = e.target?.result as string;
-          
-          // For SVG files, use as-is since they scale naturally
-          if (file.type === 'image/svg+xml') {
-            resolve(originalDataUrl);
-            return;
-          }
-          
-          // For raster images, scale them to fit in a square bounding box
-          const img = new Image();
-          img.onload = () => {
-            // Create canvas for scaling
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            if (!ctx) {
-              resolve(originalDataUrl); // Fallback to original
-              return;
-            }
-            
-            // Use a square target size for consistent display
-            // This ensures all icons have the same bounding box
-            const TARGET_SIZE = 128; // Square size for consistency
-            
-            // Calculate scaling to fit within square while maintaining aspect ratio
-            const basScale = Math.min(TARGET_SIZE / img.width, TARGET_SIZE / img.height);
-            // Apply user's custom scaling
-            const finalScale = basScale * (iconScale / 100);
-            const scaledWidth = img.width * finalScale;
-            const scaledHeight = img.height * finalScale;
-            
-            // Set canvas to square size
-            canvas.width = TARGET_SIZE;
-            canvas.height = TARGET_SIZE;
-            
-            // Clear canvas with transparent background
-            ctx.clearRect(0, 0, TARGET_SIZE, TARGET_SIZE);
-            
-            // Calculate position to center the image in the square
-            const x = (TARGET_SIZE - scaledWidth) / 2;
-            const y = (TARGET_SIZE - scaledHeight) / 2;
-            
-            // Enable image smoothing for better quality
-            ctx.imageSmoothingEnabled = true;
-            ctx.imageSmoothingQuality = 'high';
-            
-            // Draw scaled and centered image
-            ctx.drawImage(img, x, y, scaledWidth, scaledHeight);
-            
-            // Convert to data URL (using PNG for transparency)
-            resolve(canvas.toDataURL('image/png'));
-          };
-          img.onerror = () => reject(new Error('Failed to load image'));
-          img.src = originalDataUrl;
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-
-      newIcons.push({
+    const { icons: normalized, skipped } = await normalizeUserIconFiles(files, {
+      existingNames: currentIcons.map((icon) => icon.name),
+      treatAsIsometric,
+      iconScale
+    });
+    const newIcons: Icon[] = normalized.map((item) => {
+      return {
         id: generateId(),
-        name: finalName,
-        url: dataUrl,
+        name: item.name,
+        url: item.url,
         collection: 'imported',
-        isIsometric: treatAsIsometric  // Use user's preference
-      });
-    }
+        isIsometric: item.isIsometric
+      };
+    });
 
     if (newIcons.length > 0) {
       // Add new icons to the model
       const updatedIcons = [...currentIcons, ...newIcons];
       modelActions.set({ icons: updatedIcons });
-      
+
       // Update icon categories to include imported collection
       const hasImported = iconCategoriesState.some(cat => cat.id === 'imported');
       if (!hasImported) {
@@ -223,6 +215,11 @@ export const IconSelectionControls = () => {
 
     // Reset input
     event.target.value = '';
+    if (skipped.length > 0) {
+      setLibraryNotice(
+        skipped.map((item) => `${item.name}: ${item.reason}`).join(' ')
+      );
+    }
   }, [currentIcons, modelActions, iconCategoriesState, uiStateActions, treatAsIsometric, iconScale]);
 
   return (
@@ -270,8 +267,38 @@ export const IconSelectionControls = () => {
             onMouseDown={onMouseDown}
             onRenameIcon={handleRenameIcon}
             onDeleteIcon={handleDeleteIcon}
+            onAddToLibrary={
+              libraryManager && !libraryManager.unavailable
+                ? handleAddToLibrary
+                : undefined
+            }
           />
+          {libraryMatches().length > 0 && (
+            <Box sx={{ mt: 2 }}>
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                textTransform="uppercase"
+                fontWeight={600}
+                sx={{ mb: 1 }}
+              >
+                My Library
+              </Typography>
+              <IconGrid
+                icons={libraryMatches()}
+                onMouseDown={onMouseDown}
+              />
+            </Box>
+          )}
         </Section>
+      )}
+      {!filteredIcons && showLibrarySection && libraryManager && (
+        <IconCollection
+          id="my library"
+          icons={toLibraryTiles(libraryManager.icons)}
+          onMouseDown={onMouseDown}
+          isExpanded
+        />
       )}
       {!filteredIcons && (
         <Icons
@@ -279,6 +306,11 @@ export const IconSelectionControls = () => {
           onMouseDown={onMouseDown}
           onRenameIcon={handleRenameIcon}
           onDeleteIcon={handleDeleteIcon}
+          onAddToLibrary={
+              libraryManager && !libraryManager.unavailable
+                ? handleAddToLibrary
+                : undefined
+            }
         />
       )}
       
@@ -333,6 +365,11 @@ export const IconSelectionControls = () => {
             sx={{ cursor: 'pointer', mt: 1 }}
           >
             You can drag and drop any item below onto the canvas.
+          </Alert>
+        )}
+        {libraryNotice && (
+          <Alert severity="info" onClose={() => setLibraryNotice(null)} sx={{ mt: 1 }}>
+            {libraryNotice}
           </Alert>
         )}
       </Section>

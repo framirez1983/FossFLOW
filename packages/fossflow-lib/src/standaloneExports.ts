@@ -16,6 +16,7 @@ export {
 export type { DiagramFileUploadResult } from 'src/utils/diagramFile';
 export type { IsoflowProps, InitialData } from 'src/types';
 export * from 'src/types/model';
+export * from 'src/types/library';
 
 // Export i18n locales
 export { default as enUS } from 'src/i18n/en-US';

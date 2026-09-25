@@ -172,10 +172,12 @@ const locale: LocaleProps = {
       note: "Note: You can change this setting at any time. The selected mode will be used when the Connector tool is active."
     },
     iconPacks: {
-      title: "Icon Pack Management",
+      title: "Icon Library",
       lazyLoading: "Enable Lazy Loading",
       lazyLoadingDesc: "Load icon packs on demand for faster startup",
       availablePacks: "Available Icon Packs",
+      additionalPacks: "Additional Icon Packs",
+      additionalPacksDesc: "Core Isoflow is isometric and always available; optional packs may use different visual styles.",
       coreIsoflow: "Core Isoflow (Always Loaded)",
       alwaysEnabled: "Always enabled",
       awsPack: "AWS Icons",

@@ -173,10 +173,12 @@ const locale: LocaleProps = {
       note: "注意：您可以随时更改此设置。所选模式将在连接器工具激活时使用。"
     },
     iconPacks: {
-      title: "图标包管理",
+      title: "图标库",
       lazyLoading: "启用延迟加载",
       lazyLoadingDesc: "按需加载图标包以加快启动速度",
       availablePacks: "可用图标包",
+      additionalPacks: "附加图标包",
+      additionalPacksDesc: "Core Isoflow 为等距风格并始终可用；可选包可能使用不同的视觉风格。",
       coreIsoflow: "核心 Isoflow（始终加载）",
       alwaysEnabled: "始终启用",
       awsPack: "AWS 图标",

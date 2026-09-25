@@ -134,8 +134,10 @@ export const UiOverlay = ({
               }
             }}
             style={{
-              left: appPadding.x,
-              top: appPadding.y * 2 + spacing(2),
+              // The wrapper above is a zero-size box at the canvas origin,
+              // so right-anchoring must be computed against the canvas width.
+              left: rendererSize.width - appPadding.x - 360,
+              top: appPadding.y,
               maxHeight: rendererSize.height - appPadding.y * 6
             }}
           >

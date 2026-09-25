@@ -13,5 +13,8 @@ export * from './connectorGroups';
 export * from './clickStopperProps';
 export * from './labelOpacity';
 export * from './iconInventory';
+export * from './iconLibrary';
+export * from './normalizeUserIcons';
+export * from './sanitizeSvg';
 export * from './diagramFile';
 export * from './editableTarget';

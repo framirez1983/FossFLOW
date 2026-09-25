@@ -11,3 +11,13 @@ class ResizeObserverStub {
 if (typeof global.ResizeObserver === 'undefined') {
   global.ResizeObserver = ResizeObserverStub;
 }
+
+// Older jsdom environments lack TextEncoder/TextDecoder (present in all
+// supported browsers). Provide Node's implementation for tests.
+const nodeUtil = require('node:util');
+if (typeof global.TextEncoder === 'undefined') {
+  global.TextEncoder = nodeUtil.TextEncoder;
+}
+if (typeof global.TextDecoder === 'undefined') {
+  global.TextDecoder = nodeUtil.TextDecoder;
+}

@@ -173,10 +173,12 @@ const locale: LocaleProps = {
       note: "Catatan: Anda dapat mengubah pengaturan ini kapan saja. Mode yang dipilih akan digunakan saat alat Konektor aktif."
     },
     iconPacks: {
-      title: "Manajemen Paket Ikon",
+      title: "Pustaka Ikon",
       lazyLoading: "Aktifkan Lazy Loading",
       lazyLoadingDesc: "Muat paket ikon sesuai permintaan untuk startup yang lebih cepat",
       availablePacks: "Paket Ikon Tersedia",
+      additionalPacks: "Paket Ikon Tambahan",
+      additionalPacksDesc: "Core Isoflow isometris dan selalu tersedia; paket opsional mungkin menggunakan gaya visual yang berbeda.",
       coreIsoflow: "Core Isoflow (Selalu Dimuat)",
       alwaysEnabled: "Selalu diaktifkan",
       awsPack: "Ikon AWS",

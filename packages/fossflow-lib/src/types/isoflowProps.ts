@@ -2,6 +2,7 @@ import type { EditorModeEnum, MainMenuOptions, Size } from './common';
 import type { Model } from './model';
 import type { RendererProps } from './rendererProps';
 import type { CustomMenuSections, ViewOrientation } from './ui';
+import type { LibraryManagerProps } from './library';
 
 export type InitialData = Model & {
   fitToView?: boolean;
@@ -200,6 +201,8 @@ export interface LocaleProps {
       lazyLoading: string;
       lazyLoadingDesc: string;
       availablePacks: string;
+      additionalPacks: string;
+      additionalPacksDesc: string;
       coreIsoflow: string;
       alwaysEnabled: string;
       awsPack: string;
@@ -264,4 +267,5 @@ export interface IsoflowProps {
   renderer?: RendererProps;
   locale?: LocaleProps;
   iconPackManager?: IconPackManagerProps;
+  libraryManager?: LibraryManagerProps;
 }

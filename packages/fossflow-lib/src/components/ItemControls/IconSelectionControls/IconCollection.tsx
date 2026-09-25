@@ -15,6 +15,7 @@ interface Props {
   onMouseDown?: (icon: IconI) => void;
   onRenameIcon?: (icon: IconI) => void;
   onDeleteIcon?: (icon: IconI) => void;
+  onAddToLibrary?: (icon: IconI) => void;
   isExpanded: boolean;
 }
 
@@ -25,6 +26,7 @@ export const IconCollection = ({
   onMouseDown,
   onRenameIcon,
   onDeleteIcon,
+  onAddToLibrary,
   isExpanded: _isExpanded
 }: Props) => {
   const [isExpanded, setIsExpanded] = useState(_isExpanded);
@@ -69,6 +71,7 @@ export const IconCollection = ({
           onClick={onClick}
           onRenameIcon={onRenameIcon}
           onDeleteIcon={onDeleteIcon}
+          onAddToLibrary={onAddToLibrary}
         />
       )}
     </Section>

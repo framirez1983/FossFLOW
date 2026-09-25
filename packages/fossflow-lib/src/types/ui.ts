@@ -6,6 +6,7 @@ import { PanSettings } from 'src/config/panSettings';
 import { ZoomSettings } from 'src/config/zoomSettings';
 import { LabelSettings } from 'src/config/labelSettings';
 import { IconPackManagerProps } from './isoflowProps';
+import { LibraryManagerProps } from './library';
 
 interface AddItemControls {
   type: 'ADD_ITEM';
@@ -214,6 +215,7 @@ export interface UiState {
   connectorInteractionMode: ConnectorInteractionMode;
   expandLabels: boolean;
   iconPackManager: IconPackManagerProps | null;
+  libraryManager: LibraryManagerProps | null;
   customMenuItems: CustomMenuSections;
 
 }
@@ -245,6 +247,7 @@ export interface UiStateActions {
   setConnectorInteractionMode: (mode: ConnectorInteractionMode) => void;
   setExpandLabels: (expand: boolean) => void;
   setIconPackManager: (iconPackManager: IconPackManagerProps | null) => void;
+  setLibraryManager: (libraryManager: LibraryManagerProps | null) => void;
   setCustomMenuItems: (menuItems: CustomMenuSections) => void;
   setViewOrientation: (viewOrientation: ViewOrientation) => void;
 

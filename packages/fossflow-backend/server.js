@@ -5,6 +5,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import rateLimit from 'express-rate-limit';
+import { createIconLibraryStore, isValidLibraryId } from './iconLibrary.js';
 
 dotenv.config();
 
@@ -206,6 +207,76 @@ if (STORAGE_ENABLED) {
     }
   });
 
+  // ---- Reusable Icon Library (server-persisted, same volume as diagrams) ----
+  const iconLibrary = createIconLibraryStore({ storagePath: STORAGE_PATH });
+
+  app.get('/api/icon-library', readLimiter, async (req, res) => {
+    try {
+      res.json(await iconLibrary.list());
+    } catch (error) {
+      console.error('Error listing icon library: %s', error.message);
+      res.status(500).json({ error: 'Failed to list icon library' });
+    }
+  });
+
+  app.post('/api/icon-library', writeLimiter, async (req, res) => {
+    try {
+      const result = await iconLibrary.create({
+        name: req.body?.name,
+        url: req.body?.url,
+        isIsometric: req.body?.isIsometric,
+        scale: req.body?.scale
+      });
+      if (!result.ok) {
+        return res.status(result.status).json({ error: result.error });
+      }
+      res
+        .status(result.status)
+        .json({ entry: result.entry, duplicate: result.duplicate });
+    } catch (error) {
+      console.error('Error adding icon library entry: %s', error.message);
+      res.status(500).json({ error: 'Failed to add icon to library' });
+    }
+  });
+
+  app.put('/api/icon-library/:id', writeLimiter, async (req, res) => {
+    if (!isValidLibraryId(req.params.id)) {
+      return res.status(400).json({ error: 'Invalid library icon ID' });
+    }
+    try {
+      const result = await iconLibrary.rename(req.params.id, {
+        name: req.body?.name,
+        isIsometric: req.body?.isIsometric,
+        scale: req.body?.scale,
+        url: req.body?.url,
+        sha256: req.body?.sha256
+      });
+      if (!result.ok) {
+        return res.status(result.status).json({ error: result.error });
+      }
+      res.json({ entry: result.entry });
+    } catch (error) {
+      console.error('Error renaming icon library entry: %s', error.message);
+      res.status(500).json({ error: 'Failed to rename library icon' });
+    }
+  });
+
+  app.delete('/api/icon-library/:id', writeLimiter, async (req, res) => {
+    if (!isValidLibraryId(req.params.id)) {
+      return res.status(400).json({ error: 'Invalid library icon ID' });
+    }
+    try {
+      const result = await iconLibrary.remove(req.params.id);
+      if (!result.ok) {
+        return res.status(result.status).json({ error: result.error });
+      }
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error deleting icon library entry: %s', error.message);
+      res.status(500).json({ error: 'Failed to delete library icon' });
+    }
+  });
+
 } else {
   // Storage disabled - return appropriate responses
   app.get('/api/diagrams', (req, res) => {
@@ -225,6 +296,22 @@ if (STORAGE_ENABLED) {
   });
   
   app.post('/api/diagrams', (req, res) => {
+    res.status(503).json({ error: 'Server storage is disabled' });
+  });
+
+  app.get('/api/icon-library', (req, res) => {
+    res.status(503).json({ error: 'Server storage is disabled' });
+  });
+
+  app.post('/api/icon-library', (req, res) => {
+    res.status(503).json({ error: 'Server storage is disabled' });
+  });
+
+  app.put('/api/icon-library/:id', (req, res) => {
+    res.status(503).json({ error: 'Server storage is disabled' });
+  });
+
+  app.delete('/api/icon-library/:id', (req, res) => {
     res.status(503).json({ error: 'Server storage is disabled' });
   });
 }

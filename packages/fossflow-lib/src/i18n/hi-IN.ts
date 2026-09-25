@@ -173,10 +173,12 @@ const locale: LocaleProps = {
       note: "नोट: आप किसी भी समय इस सेटिंग को बदल सकते हैं। जब कनेक्टर उपकरण सक्रिय होता है तो चयनित मोड का उपयोग किया जाएगा।"
     },
     iconPacks: {
-      title: "आइकन पैक प्रबंधन",
+      title: "आइकन लाइब्रेरी",
       lazyLoading: "लेज़ी लोडिंग सक्षम करें",
       lazyLoadingDesc: "तेज़ स्टार्टअप के लिए आवश्यकता पर आइकन पैक लोड करें",
       availablePacks: "उपलब्ध आइकन पैक",
+      additionalPacks: "अतिरिक्त आइकन पैक",
+      additionalPacksDesc: "कोर Isoflow आइसोमेट्रिक है और हमेशा उपलब्ध रहता है; वैकल्पिक पैक की दृश्य शैलियाँ भिन्न हो सकती हैं।",
       coreIsoflow: "Core Isoflow (हमेशा लोड)",
       alwaysEnabled: "हमेशा सक्षम",
       awsPack: "AWS आइकन",

@@ -11,10 +11,11 @@ import {
   ListItem,
   ListItemIcon,
   ListItemText,
+  Stack,
   TextField,
   Typography
 } from '@mui/material';
-import { Delete as DeleteIcon } from '@mui/icons-material';
+import { Delete as DeleteIcon, LibraryAdd as LibraryAddIcon } from '@mui/icons-material';
 import { useModelStore } from 'src/stores/modelStore';
 import { useUiStateStore } from 'src/stores/uiStateStore';
 import { useScene } from 'src/hooks/useScene';
@@ -34,12 +35,36 @@ interface Props {
 export const ItemManager = ({ open, onClose }: Props) => {
   const items = useModelStore((state) => state.items);
   const views = useModelStore((state) => state.views);
+  const icons = useModelStore((state) => state.icons);
   const itemControls = useUiStateStore((state) => state.itemControls);
+  const libraryManager = useUiStateStore((state) => state.libraryManager);
   const uiStateActions = useUiStateStore((state) => state.actions);
   const { deleteModelItem } = useScene();
 
   const [query, setQuery] = useState('');
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const [libraryNotice, setLibraryNotice] = useState<string | null>(null);
+
+  const libraryActive = libraryManager !== null && !libraryManager.unavailable;
+
+  const handleAddItemIconToLibrary = async (iconId: string | undefined) => {
+    if (!libraryManager || !iconId) return;
+    const icon = icons.find((entry) => {
+      return entry.id === iconId;
+    });
+    // Only the icon asset is promoted, never the ModelItem record.
+    if (!icon || icon.collection !== 'imported') return;
+    try {
+      const { duplicate } = await libraryManager.addIcon(icon);
+      setLibraryNotice(
+        duplicate
+          ? `"${icon.name}" is already in the Library`
+          : `"${icon.name}" added to the Library`
+      );
+    } catch {
+      setLibraryNotice(`Could not add "${icon.name}" to the Library`);
+    }
+  };
 
   const usageById = useMemo(() => {
     const counts = new Map<string, number>();
@@ -146,20 +171,59 @@ export const ItemManager = ({ open, onClose }: Props) => {
             <List dense disablePadding>
               {visibleItems.map((item) => {
                 const viewCount = usageById.get(item.id) ?? 0;
+                const itemIcon = item.icon
+                  ? icons.find((entry) => {
+                      return entry.id === item.icon;
+                    })
+                  : undefined;
+                const promotableIcon =
+                  itemIcon && itemIcon.collection === 'imported'
+                    ? itemIcon
+                    : undefined;
+                const iconInLibrary =
+                  libraryManager &&
+                  !libraryManager.unavailable &&
+                  promotableIcon
+                    ? libraryManager.isInLibrary(promotableIcon.url)
+                    : false;
                 return (
                   <React.Fragment key={item.id}>
                     <ListItem
                       secondaryAction={
-                        <MuiIconButton
-                          edge="end"
-                          aria-label={`Delete ${item.name}`}
-                          color="error"
-                          onClick={() => {
-                            setPendingDeleteId(item.id);
-                          }}
-                        >
-                          <DeleteIcon fontSize="small" />
-                        </MuiIconButton>
+                        <Stack direction="row" spacing={0.5} alignItems="center">
+                          {libraryActive && promotableIcon && (
+                            iconInLibrary ? (
+                              <Typography
+                                variant="caption"
+                                color="text.secondary"
+                              >
+                                In Library
+                              </Typography>
+                            ) : (
+                              <MuiIconButton
+                                edge="end"
+                                aria-label={`Add icon of ${item.name} to Library`}
+                                onClick={() => {
+                                  void handleAddItemIconToLibrary(
+                                    promotableIcon.id
+                                  );
+                                }}
+                              >
+                                <LibraryAddIcon fontSize="small" />
+                              </MuiIconButton>
+                            )
+                          )}
+                          <MuiIconButton
+                            edge="end"
+                            aria-label={`Delete ${item.name}`}
+                            color="error"
+                            onClick={() => {
+                              setPendingDeleteId(item.id);
+                            }}
+                          >
+                            <DeleteIcon fontSize="small" />
+                          </MuiIconButton>
+                        </Stack>
                       }
                     >
                       <ListItemIcon sx={{ minWidth: 48 }}>
@@ -181,6 +245,11 @@ export const ItemManager = ({ open, onClose }: Props) => {
           Deleting here removes the item everywhere. Removing a node from the
           canvas only removes that view&apos;s placement.
         </Typography>
+        {libraryNotice && (
+          <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+            {libraryNotice}
+          </Typography>
+        )}
       </DialogContent>
     </Dialog>
   );

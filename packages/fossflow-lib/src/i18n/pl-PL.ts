@@ -173,10 +173,12 @@ const locale: LocaleProps = {
       note: "Uwaga: To ustawienie można zmienić w dowolnym momencie. Wybrany tryb będzie używany, gdy narzędzie Połączeń jest aktywne.."
     },
     iconPacks: {
-      title: "Zarządzanie pakietami ikon",
+      title: "Biblioteka ikon",
       lazyLoading: "Włącz opóźnione ładowanie",
       lazyLoadingDesc: "Wczytuj pakiety ikon na żądanie, aby przyspieszyć uruchamianie",
       availablePacks: "Dostępne pakiety ikon",
+      additionalPacks: "Dodatkowe pakiety ikon",
+      additionalPacksDesc: "Core Isoflow jest izometryczny i zawsze dostępny; pakiety opcjonalne mogą używać innych stylów wizualnych.",
       coreIsoflow: "Core Isoflow (Zawsze wczytane)",
       alwaysEnabled: "Zawsze włączone",
       awsPack: "AWS Icons",

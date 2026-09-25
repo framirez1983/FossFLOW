@@ -29,6 +29,7 @@ const App = ({
   renderer,
   locale = enUS,
   iconPackManager,
+  libraryManager,
 }: IsoflowProps) => {
   const uiStateActions = useUiStateStore((state) => {
     return state.actions;
@@ -94,6 +95,10 @@ const App = ({
   useLayoutEffect(() => {
     uiStateActions.setIconPackManager(iconPackManager || null);
   }, [iconPackManager, uiStateActions]);
+
+  useLayoutEffect(() => {
+    uiStateActions.setLibraryManager(libraryManager || null);
+  }, [libraryManager, uiStateActions]);
 
   if (!initialDataManager.isReady) return null;
 

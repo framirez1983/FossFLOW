@@ -173,10 +173,12 @@ const locale: LocaleProps = {
       note: "Not: Bu ayarı istediğiniz zaman değiştirebilirsiniz. Seçilen mod, Bağlayıcı aracı etkin olduğunda kullanılacaktır."
     },
     iconPacks: {
-      title: "Simge Paketi Yönetimi",
+      title: "Simge Kitaplığı",
       lazyLoading: "Tembel Yükleme Etkinleştir",
       lazyLoadingDesc: "Daha hızlı başlangıç için simge paketlerini isteğe bağlı yükle",
       availablePacks: "Mevcut Simge Paketleri",
+      additionalPacks: "Ek Simge Paketleri",
+      additionalPacksDesc: "Core Isoflow izometriktir ve her zaman kullanılabilir; isteğe bağlı paketler farklı görsel stiller kullanabilir.",
       coreIsoflow: "Çekirdek Isoflow (Her Zaman Yüklenir)",
       alwaysEnabled: "Her zaman etkin",
       awsPack: "AWS Simgeleri",

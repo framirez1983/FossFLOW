@@ -172,10 +172,12 @@ const locale: LocaleProps = {
       note: "Nota: Puedes cambiar esta configuración en cualquier momento. El modo seleccionado se usará cuando la herramienta de conector esté activa."
     },
     iconPacks: {
-      title: "Gestión de Paquetes de Iconos",
+      title: "Biblioteca de Iconos",
       lazyLoading: "Activar Carga Diferida",
       lazyLoadingDesc: "Cargar paquetes de iconos bajo demanda para un inicio más rápido",
       availablePacks: "Paquetes de Iconos Disponibles",
+      additionalPacks: "Paquetes de iconos adicionales",
+      additionalPacksDesc: "Core Isoflow es isométrico y siempre está disponible; los paquetes opcionales pueden usar estilos visuales diferentes.",
       coreIsoflow: "Core Isoflow (Siempre Cargado)",
       alwaysEnabled: "Siempre activado",
       awsPack: "Iconos AWS",
