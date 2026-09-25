@@ -15,6 +15,7 @@ import {
   Typography
 } from '@mui/material';
 import { Check, ExpandMore } from '@mui/icons-material';
+import { alpha } from '@mui/material/styles';
 import { useModelStore, useModelStoreApi } from 'src/stores/modelStore';
 import { useUiStateStore } from 'src/stores/uiStateStore';
 import { useScene } from 'src/hooks/useScene';
@@ -129,6 +130,7 @@ export const ViewSwitcher = () => {
     <>
       <Button
         size="small"
+        variant="text"
         endIcon={<ExpandMore fontSize="small" />}
         onClick={(event) => {
           setMenuAnchor(event.currentTarget);
@@ -138,9 +140,20 @@ export const ViewSwitcher = () => {
           pointerEvents: 'auto',
           textTransform: 'none',
           fontWeight: 600,
-          color: 'text.secondary',
           minWidth: 0,
-          py: 0
+          py: 0,
+          color: 'primary.dark',
+          backgroundColor: (theme) => {
+            return alpha(theme.palette.primary.main, 0.08);
+          },
+          border: (theme) => {
+            return `1px solid ${alpha(theme.palette.primary.main, 0.25)}`;
+          },
+          '&:hover': {
+            backgroundColor: (theme) => {
+              return alpha(theme.palette.primary.main, 0.16);
+            }
+          }
         }}
       >
         {activeView?.name ?? currentView.name}

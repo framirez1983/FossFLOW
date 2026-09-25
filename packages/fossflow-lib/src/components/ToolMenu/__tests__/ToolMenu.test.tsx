@@ -64,6 +64,30 @@ const clickAddButton = () => {
   fireEvent.click(button);
 };
 
+describe('ToolMenu palette', () => {
+  it('renders the same tools in the same order', () => {
+    renderMenu();
+
+    const buttons = screen.getAllByRole('button');
+    const labels = buttons.map((button) => {
+      return button.getAttribute('aria-label') ?? '';
+    });
+
+    expect(labels).toEqual([
+      expect.stringMatching(/^Undo/),
+      expect.stringMatching(/^Redo/),
+      expect.stringMatching(/^Select/),
+      expect.stringMatching(/^Lasso select/),
+      expect.stringMatching(/^Freehand lasso/),
+      expect.stringMatching(/^Pan/),
+      expect.stringMatching(/^Add item/),
+      expect.stringMatching(/^Rectangle/),
+      expect.stringMatching(/^Connector/),
+      expect.stringMatching(/^Text/)
+    ]);
+  });
+});
+
 describe('ToolMenu add menu', () => {
   it('exposes New item, Existing item and Manage items', async () => {
     renderMenu();

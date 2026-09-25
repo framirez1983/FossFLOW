@@ -119,17 +119,19 @@ export const ToolMenu = () => {
 
   return (
     <UiElement>
-      <Stack direction="row" spacing={0.5} alignItems="center">
+      <Stack direction="column" spacing={0.5} alignItems="center">
         {/* Undo/Redo Section */}
         <IconButton
           name="Undo (Ctrl+Z)"
           Icon={<UndoIcon />}
+          tooltipPosition="right"
           onClick={handleUndo}
           disabled={!canUndo}
         />
         <IconButton
           name="Redo (Ctrl+Y)"
           Icon={<RedoIcon />}
+          tooltipPosition="right"
           onClick={handleRedo}
           disabled={!canRedo}
         />
@@ -138,6 +140,7 @@ export const ToolMenu = () => {
         <IconButton
           name={`Select${hotkeys.select ? ` (${hotkeys.select.toUpperCase()})` : ''}`}
           Icon={<NearMeIcon />}
+          tooltipPosition="right"
           onClick={() => {
             uiStateStoreActions.setMode({
               type: 'CURSOR',
@@ -150,6 +153,7 @@ export const ToolMenu = () => {
         <IconButton
           name={`Lasso select${hotkeys.lasso ? ` (${hotkeys.lasso.toUpperCase()})` : ''}`}
           Icon={<LassoIcon />}
+          tooltipPosition="right"
           onClick={() => {
             uiStateStoreActions.setMode({
               type: 'LASSO',
@@ -163,6 +167,7 @@ export const ToolMenu = () => {
         <IconButton
           name={`Freehand lasso${hotkeys.freehandLasso ? ` (${hotkeys.freehandLasso.toUpperCase()})` : ''}`}
           Icon={<FreehandLassoIcon />}
+          tooltipPosition="right"
           onClick={() => {
             uiStateStoreActions.setMode({
               type: 'FREEHAND_LASSO',
@@ -177,6 +182,7 @@ export const ToolMenu = () => {
         <IconButton
           name={`Pan${hotkeys.pan ? ` (${hotkeys.pan.toUpperCase()})` : ''}`}
           Icon={<PanToolIcon />}
+          tooltipPosition="right"
           onClick={() => {
             uiStateStoreActions.setMode({
               type: 'PAN',
@@ -190,6 +196,7 @@ export const ToolMenu = () => {
         <IconButton
           name={`Add item${addItemKey ? ` (${addItemKey})` : ''}`}
           Icon={<AddIcon />}
+          tooltipPosition="right"
           onClick={(event) => {
             setAddMenuAnchor(event.currentTarget);
           }}
@@ -234,6 +241,7 @@ export const ToolMenu = () => {
         <IconButton
           name={`Rectangle${hotkeys.rectangle ? ` (${hotkeys.rectangle.toUpperCase()})` : ''}`}
           Icon={<CropSquareIcon />}
+          tooltipPosition="right"
           onClick={() => {
             uiStateStoreActions.setMode({
               type: 'RECTANGLE.DRAW',
@@ -246,6 +254,7 @@ export const ToolMenu = () => {
         <IconButton
           name={`Connector${hotkeys.connector ? ` (${hotkeys.connector.toUpperCase()})` : ''}`}
           Icon={<ConnectorIcon />}
+          tooltipPosition="right"
           onClick={() => {
             uiStateStoreActions.setMode({
               type: 'CONNECTOR',
@@ -258,6 +267,7 @@ export const ToolMenu = () => {
         <IconButton
           name={`Text${hotkeys.text ? ` (${hotkeys.text.toUpperCase()})` : ''}`}
           Icon={<TitleIcon />}
+          tooltipPosition="right"
           onClick={createTextBoxProxy}
           isActive={mode.type === 'TEXTBOX'}
         />

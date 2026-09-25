@@ -148,10 +148,11 @@ export const UiOverlay = ({
             ref={toolMenuRef}
             sx={{
               position: 'absolute',
-              transform: 'translateX(-100%)'
+              maxHeight: rendererSize.height - appPadding.y * 6,
+              overflowY: 'auto'
             }}
             style={{
-              left: rendererSize.width - appPadding.x,
+              left: appPadding.x,
               top: appPadding.y
             }}
           >
