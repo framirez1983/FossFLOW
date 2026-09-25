@@ -12,7 +12,12 @@ const locale: LocaleProps = {
     exportImage: "Экспортировать как изображение",
     clearCanvas: "Очистить холст",
     settings: "Настройки",
-    gitHub: "GitHub"
+    gitHub: "GitHub",
+    sectionFile: "Файл",
+    sectionStorage: "Хранилище",
+    sectionEdit: "Правка",
+    sectionSettings: "Настройки",
+    sectionHelp: "Справка",
   },
   helpDialog: {
     title: "Горячие клавиши и справка",

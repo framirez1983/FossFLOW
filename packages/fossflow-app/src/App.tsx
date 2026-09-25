@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Isoflow } from 'fossflow';
 import { flattenCollections } from '@isoflow/isopacks/dist/utils';
 import isoflowIsopack from '@isoflow/isopacks/dist/isoflow';
@@ -15,9 +15,13 @@ import {
 } from './diagramUtils';
 import {
   generateExportFilename,
-  DIAGRAM_FILE_EXTENSION
+  DIAGRAM_FILE_EXTENSION,
+  DIAGRAM_FILE_ACCEPT,
+  parseDiagramFileUpload,
+  isEditableEventTarget
 } from 'fossflow';
 import { StorageManager } from './StorageManager';
+import { APP_DISPLAY_IDENTITY, MAIN_MENU_SLOT_ID } from './brand';
 import { DiagramManager } from './components/DiagramManager';
 import { storageManager } from './services/storageService';
 import ChangeLanguage from './components/ChangeLanguage';
@@ -69,8 +73,6 @@ function EditorPage() {
   );
   const [diagramName, setDiagramName] = useState('');
   const [showSaveDialog, setShowSaveDialog] = useState(false);
-  const [showLoadDialog, setShowLoadDialog] = useState(false);
-  const [showExportDialog, setShowExportDialog] = useState(false);
   const [fossflowKey, setFossflowKey] = useState(0); // Key to force re-render of FossFLOW
   const [currentModel, setCurrentModel] = useState<DiagramData | null>(null); // Store current model state
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -458,7 +460,6 @@ function EditorPage() {
     setFossflowKey((prev) => {
       return prev + 1;
     }); // Force re-render of FossFLOW
-    setShowLoadDialog(false);
     setHasUnsavedChanges(false);
 
     // Save as last opened (without icons)
@@ -473,18 +474,38 @@ function EditorPage() {
     }
   };
 
-  const deleteDiagram = (id: string) => {
-    if (window.confirm(t('alert.confirmDelete'))) {
-      setDiagrams(
-        diagrams.filter((d) => {
-          return d.id !== id;
-        })
-      );
-      if (currentDiagram?.id === id) {
-        setCurrentDiagram(null);
-        setDiagramName('');
-        localStorage.removeItem(SERVER_CONTEXT_STORAGE_KEY);
+  const openFileInputRef = useRef<HTMLInputElement>(null);
+
+  const openFileDiagram = () => {
+    openFileInputRef.current?.click();
+  };
+
+  const handleOpenFile = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files?.[0];
+    // Reset so the same file can be opened again.
+    event.target.value = '';
+    if (!file) return;
+
+    if (hasUnsavedChanges && !window.confirm(t('alert.unsavedChanges'))) {
+      return;
+    }
+
+    try {
+      const text = await file.text();
+      const result = parseDiagramFileUpload(text);
+      if (!result.ok) {
+        alert(result.error);
+        return;
       }
+      await handleDiagramManagerLoad(
+        `file-${Date.now()}`,
+        result.model,
+        'session'
+      );
+    } catch (err) {
+      alert(err instanceof Error ? err.message : t('alert.invalidFile'));
     }
   };
 
@@ -592,12 +613,13 @@ function EditorPage() {
     });
     a.click();
     URL.revokeObjectURL(url);
-
-    setShowExportDialog(false);
-    setHasUnsavedChanges(false); // Mark as saved after export
   };
 
-  const handleDiagramManagerLoad = async (id: string, data: any) => {
+  const handleDiagramManagerLoad = async (
+    id: string,
+    data: any,
+    forcedOrigin?: StorageOrigin | null
+  ) => {
     console.log(`App: handleDiagramManagerLoad called for diagram ${id}`);
 
     /**
@@ -672,9 +694,9 @@ function EditorPage() {
       updatedAt: data.lastModified || new Date().toISOString(),
       // Retain the server ID only when actually loaded from Server Storage,
       // so Save updates the same server diagram. Session loads stay local.
-      storageOrigin: (storageManager.isServerStorage()
-        ? 'server'
-        : 'session') as StorageOrigin
+      // File opens force session origin explicitly.
+      storageOrigin: (forcedOrigin ??
+        (storageManager.isServerStorage() ? 'server' : 'session')) as StorageOrigin
     };
 
     console.log(`App: Setting all state for diagram ${id}`);
@@ -723,7 +745,7 @@ function EditorPage() {
 
   // i18n
   const { t, i18n } = useTranslation('app');
-  
+
   // Get locale with fallback to en-US if not found
   const currentLocale = allLocales[i18n.language as keyof typeof allLocales] || allLocales['en-US'];
 
@@ -804,16 +826,19 @@ function EditorPage() {
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (isEditableEventTarget(e.target)) {
+        return;
+      }
       // Ctrl+S or Cmd+S for Save (unified: server-backed or session)
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
         e.preventDefault();
         handleUnifiedSave();
       }
 
-      // Ctrl+O or Cmd+O for Open/Load
+      // Ctrl+O or Cmd+O for Open FossFLOW file
       if ((e.ctrlKey || e.metaKey) && e.key === 'o') {
         e.preventDefault();
-        setShowLoadDialog(true);
+        openFileDiagram();
       }
     };
 
@@ -823,111 +848,134 @@ function EditorPage() {
     };
   }, [currentDiagram, hasUnsavedChanges, currentModel, diagramData]);
 
+  const menuItems = useMemo(
+    () => {
+      return {
+        file: [
+          {
+            id: 'new-diagram',
+            label: t('nav.newDiagram'),
+            onSelect: () => {
+              newDiagram();
+            }
+          },
+          {
+            id: 'open-file',
+            label: t('menu.openFile'),
+            onSelect: () => {
+              openFileDiagram();
+            }
+          },
+          {
+            id: 'save',
+            label: t('menu.save'),
+            shortcut: 'Ctrl+S',
+            onSelect: () => {
+              void handleUnifiedSave();
+            }
+          },
+          {
+            id: 'export-file',
+            label: t('nav.exportFile'),
+            dividerBefore: true,
+            onSelect: () => {
+              exportDiagram();
+            }
+          }
+        ],
+        ...(serverStorageAvailable
+          ? {
+              storage: [
+                {
+                  id: 'server-storage',
+                  label: t('nav.serverStorage'),
+                  onSelect: () => {
+                    setShowDiagramManager(true);
+                  }
+                }
+              ]
+            }
+          : {})
+      };
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [t, serverStorageAvailable]
+  );
+
+  const documentStatusText = isReadonlyUrl
+    ? `${t('status.current')}: ${diagramName}`
+    : [
+        currentDiagram
+          ? currentDiagram.name
+          : diagramName || t('status.untitled'),
+        hasUnsavedChanges ? t('status.modified') : t('status.saved'),
+        isServerBackedDiagram(currentDiagram)
+          ? t('status.serverShort')
+          : t('status.localShort')
+      ].join(' · ');
+
   return (
     <div className="App">
       <div className="toolbar">
-        {!isReadonlyUrl && (
-          <>
-            <button onClick={newDiagram}>{t('nav.newDiagram')}</button>
-            {serverStorageAvailable && (
+        <div className="toolbar-left">
+          {!isReadonlyUrl && (
+            <>
+              <span id={MAIN_MENU_SLOT_ID} className="mainmenu-slot" />
               <button
                 onClick={() => {
-                  return setShowDiagramManager(true);
+                  void handleUnifiedSave();
                 }}
-                style={{ backgroundColor: '#2196F3', color: 'white' }}
+                disabled={!!currentDiagram && !hasUnsavedChanges}
+                style={{
+                  backgroundColor:
+                    !currentDiagram || hasUnsavedChanges
+                      ? '#ffc107'
+                      : '#6c757d',
+                  opacity:
+                    !currentDiagram || hasUnsavedChanges ? 1 : 0.5,
+                  cursor:
+                    !currentDiagram || hasUnsavedChanges
+                      ? 'pointer'
+                      : 'not-allowed'
+                }}
+                title={
+                  isServerBackedDiagram(currentDiagram)
+                    ? t('nav.saveServerTitle')
+                    : 'Save to current session only'
+                }
               >
-                🌐 {t('nav.serverStorage')}
+                {t('menu.save')}
               </button>
-            )}
-            <button
-              onClick={() => {
-                return setShowSaveDialog(true);
-              }}
-            >
-              {t('nav.saveSessionOnly')}
-            </button>
-            <button
-              onClick={() => {
-                return setShowLoadDialog(true);
-              }}
-            >
-              {t('nav.loadSessionOnly')}
-            </button>
-            <button
-              onClick={() => {
-                return setShowExportDialog(true);
-              }}
-              style={{ backgroundColor: '#007bff' }}
-            >
-              💾 {t('nav.exportFile')}
-            </button>
-            <button
-              onClick={() => {
-                handleUnifiedSave();
-              }}
-              disabled={!currentDiagram || !hasUnsavedChanges}
-              style={{
-                backgroundColor:
-                  currentDiagram && hasUnsavedChanges ? '#ffc107' : '#6c757d',
-                opacity: currentDiagram && hasUnsavedChanges ? 1 : 0.5,
-                cursor:
-                  currentDiagram && hasUnsavedChanges
-                    ? 'pointer'
-                    : 'not-allowed'
-              }}
-              title={
-                isServerBackedDiagram(currentDiagram)
-                  ? t('nav.saveServerTitle')
-                  : 'Save to current session only'
-              }
-            >
-              {isServerBackedDiagram(currentDiagram)
-                ? t('nav.saveServer')
-                : t('nav.quickSaveSession')}
-            </button>
-          </>
-        )}
-        {isReadonlyUrl && (
-          <div
-            style={{
-              color: 'black',
-              padding: '8px 16px',
-              borderRadius: '4px',
-              fontWeight: 'bold',
-              border: '2px solid #000000'
-            }}
-          >
-            {t('dialog.readOnly.mode')}
-          </div>
-        )}
-        <ChangeLanguage />
-        <span className="current-diagram">
-          {isReadonlyUrl ? (
-            <span>
-              {t('status.current')}: {diagramName}
-            </span>
-          ) : (
-            <>
-              {currentDiagram
-                ? `${t('status.current')}: ${currentDiagram.name}`
-                : diagramName || t('status.untitled')}
-              {hasUnsavedChanges && (
-                <span style={{ color: '#ff9800', marginLeft: '10px' }}>
-                  • {t('status.modified')}
-                </span>
-              )}
-              <span
-                style={{ fontSize: '12px', color: '#666', marginLeft: '10px' }}
-              >
-                (
-                {isServerBackedDiagram(currentDiagram)
-                  ? t('status.serverStorageNote')
-                  : t('status.sessionStorageNote')}
-                )
-              </span>
             </>
           )}
-        </span>
+          {isReadonlyUrl && (
+            <div
+              style={{
+                color: 'black',
+                padding: '8px 16px',
+                borderRadius: '4px',
+                fontWeight: 'bold',
+                border: '2px solid #000000'
+              }}
+            >
+              {t('dialog.readOnly.mode')}
+            </div>
+          )}
+        </div>
+        <div className="toolbar-brand">{APP_DISPLAY_IDENTITY}</div>
+        <div className="toolbar-right">
+          <span className="current-diagram" title={documentStatusText}>
+            {documentStatusText}
+          </span>
+          <ChangeLanguage />
+          <input
+            ref={openFileInputRef}
+            type="file"
+            accept={DIAGRAM_FILE_ACCEPT}
+            style={{ display: 'none' }}
+            onChange={handleOpenFile}
+          />
+        </div>
       </div>
 
       <div className="fossflow-container">
@@ -935,6 +983,9 @@ function EditorPage() {
           key={`${fossflowKey}-${i18n.language}`}
           initialData={diagramData}
           onModelUpdated={handleModelUpdated}
+          menuItems={menuItems}
+          mainMenuTriggerSlotId={MAIN_MENU_SLOT_ID}
+          displayIdentity={APP_DISPLAY_IDENTITY}
           editorMode={isReadonlyUrl ? 'EXPLORABLE_READONLY' : 'EDITABLE'}
           locale={currentLocale}
           iconPackManager={{
@@ -992,110 +1043,6 @@ function EditorPage() {
                 }}
               >
                 {t('dialog.save.btnCancel')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Load Dialog */}
-      {showLoadDialog && (
-        <div className="dialog-overlay">
-          <div className="dialog">
-            <h2>{t('dialog.load.title')}</h2>
-            <div
-              style={{
-                backgroundColor: '#fff3cd',
-                border: '1px solid #ffeeba',
-                padding: '15px',
-                borderRadius: '4px',
-                marginBottom: '20px'
-              }}
-            >
-              <strong>⚠️ {t('dialog.load.noteTitle')}:</strong>{' '}
-              {t('dialog.load.noteMessage')}
-            </div>
-            <div className="diagram-list">
-              {diagrams.length === 0 ? (
-                <p>{t('dialog.load.noSavedDiagrams')}</p>
-              ) : (
-                diagrams.map((diagram) => {
-                  return (
-                    <div key={diagram.id} className="diagram-item">
-                      <div>
-                        <strong>{diagram.name}</strong>
-                        <br />
-                        <small>
-                          {t('dialog.load.updated')}:{' '}
-                          {new Date(diagram.updatedAt).toLocaleString()}
-                        </small>
-                      </div>
-                      <div className="diagram-actions">
-                        <button
-                          onClick={() => {
-                            return loadDiagram(diagram, false);
-                          }}
-                        >
-                          {t('dialog.load.btnLoad')}
-                        </button>
-                        <button
-                          onClick={() => {
-                            return deleteDiagram(diagram.id);
-                          }}
-                        >
-                          {t('dialog.load.btnDelete')}
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-            <div className="dialog-buttons">
-              <button
-                onClick={() => {
-                  return setShowLoadDialog(false);
-                }}
-              >
-                {t('dialog.load.btnClose')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Export Dialog */}
-      {showExportDialog && (
-        <div className="dialog-overlay">
-          <div className="dialog">
-            <h2>{t('dialog.export.title')}</h2>
-            <div
-              style={{
-                backgroundColor: '#d4edda',
-                border: '1px solid #c3e6cb',
-                padding: '15px',
-                borderRadius: '8px',
-                marginBottom: '20px'
-              }}
-            >
-              <p style={{ margin: '0 0 10px 0' }}>
-                <strong>✅ {t('dialog.export.recommendedTitle')}:</strong>{' '}
-                {t('dialog.export.recommendedMessage')}
-              </p>
-              <p style={{ margin: 0, fontSize: '14px', color: '#155724' }}>
-                {t('dialog.export.noteMessage')}
-              </p>
-            </div>
-            <div className="dialog-buttons">
-              <button onClick={exportDiagram}>
-                {t('dialog.export.btnDownload')}
-              </button>
-              <button
-                onClick={() => {
-                  return setShowExportDialog(false);
-                }}
-              >
-                {t('dialog.export.btnCancel')}
               </button>
             </div>
           </div>

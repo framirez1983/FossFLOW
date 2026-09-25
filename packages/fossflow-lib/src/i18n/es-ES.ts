@@ -12,7 +12,12 @@ const locale: LocaleProps = {
     exportImage: "Exportar como imagen",
     clearCanvas: "Limpiar el lienzo",
     settings: "Configuración",
-    gitHub: "GitHub"
+    gitHub: "GitHub",
+    sectionFile: "Archivo",
+    sectionStorage: "Almacenamiento",
+    sectionEdit: "Editar",
+    sectionSettings: "Configuración",
+    sectionHelp: "Ayuda",
   },
   helpDialog: {
     title: "Atajos de teclado y ayuda",

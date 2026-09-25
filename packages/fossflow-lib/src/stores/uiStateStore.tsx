@@ -45,6 +45,7 @@ const initialState = () => {
       connectorInteractionMode: 'click', // Default to click mode
       expandLabels: false, // Default to collapsed labels
       iconPackManager: null, // Will be set by Isoflow if provided
+      customMenuItems: {},
 
       actions: {
         rotateView: (clockwise) => {
@@ -183,6 +184,9 @@ const initialState = () => {
         },
         setIconPackManager: (iconPackManager) => {
           set({ iconPackManager });
+        },
+        setCustomMenuItems: (customMenuItems) => {
+          set({ customMenuItems });
         },
         setViewOrientation: (viewOrientation) => {
           set({ viewOrientation });

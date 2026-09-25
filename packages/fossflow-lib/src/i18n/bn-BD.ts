@@ -12,7 +12,12 @@ const locale: LocaleProps = {
     exportImage: "ছবি হিসাবে রপ্তানি করুন",
     clearCanvas: "ক্যানভাস পরিষ্কার করুন",
     settings: "সেটিংস",
-    gitHub: "GitHub"
+    gitHub: "GitHub",
+    sectionFile: "ফাইল",
+    sectionStorage: "স্টোরেজ",
+    sectionEdit: "সম্পাদনা",
+    sectionSettings: "সেটিংস",
+    sectionHelp: "সহায়তা",
   },
   helpDialog: {
     title: "কীবোর্ড শর্টকাট এবং সহায়তা",

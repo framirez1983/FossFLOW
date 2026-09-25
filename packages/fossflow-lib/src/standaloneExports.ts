@@ -7,6 +7,7 @@ export * from 'src/schemas';
 export { generateExportFilename } from 'src/utils/exportOptions';
 export type { ExportFilenameContext } from 'src/utils/exportOptions';
 export { parseDiagramFileUpload } from 'src/utils/diagramFile';
+export { isEditableEventTarget } from 'src/utils/editableTarget';
 export {
   DIAGRAM_FILE_EXTENSION,
   LEGACY_DIAGRAM_FILE_EXTENSION,

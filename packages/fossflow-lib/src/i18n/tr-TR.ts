@@ -12,7 +12,12 @@ const locale: LocaleProps = {
     exportImage: "Görüntü olarak dışa aktar",
     clearCanvas: "Tuvali temizle",
     settings: "Ayarlar",
-    gitHub: "GitHub"
+    gitHub: "GitHub",
+    sectionFile: "Dosya",
+    sectionStorage: "Depolama",
+    sectionEdit: "Düzenle",
+    sectionSettings: "Ayarlar",
+    sectionHelp: "Yardım",
   },
   helpDialog: {
     title: "Klavye Kısayolları ve Yardım",

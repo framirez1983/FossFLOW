@@ -12,7 +12,12 @@ const locale: LocaleProps = {
     exportImage: "Ekspor sebagai gambar",
     clearCanvas: "Bersihkan kanvas",
     settings: "Pengaturan",
-    gitHub: "GitHub"
+    gitHub: "GitHub",
+    sectionFile: "Berkas",
+    sectionStorage: "Penyimpanan",
+    sectionEdit: "Edit",
+    sectionSettings: "Pengaturan",
+    sectionHelp: "Bantuan",
   },
   helpDialog: {
     title: "Pintasan Keyboard & Bantuan",

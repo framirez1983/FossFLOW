@@ -14,3 +14,4 @@ export * from './clickStopperProps';
 export * from './labelOpacity';
 export * from './iconInventory';
 export * from './diagramFile';
+export * from './editableTarget';

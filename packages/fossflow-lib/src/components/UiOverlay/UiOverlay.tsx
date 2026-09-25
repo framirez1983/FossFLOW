@@ -56,7 +56,13 @@ const getEditorModeMapping = (editorMode: keyof typeof EditorModeEnum) => {
   return availableUiFeatures;
 };
 
-export const UiOverlay = () => {
+export const UiOverlay = ({
+  mainMenuTriggerSlotId,
+  menuVersionLabel
+}: {
+  mainMenuTriggerSlotId?: string;
+  menuVersionLabel?: string;
+}) => {
   const viewOrientation = useUiStateStore(state => state.viewOrientation);
   const theme = useTheme();
   const contextMenuAnchorRef = useRef<HTMLDivElement>(null);
@@ -178,7 +184,10 @@ export const UiOverlay = () => {
               left: appPadding.x
             }}
           >
-            <MainMenu />
+            <MainMenu
+              triggerSlotId={mainMenuTriggerSlotId}
+              versionLabel={menuVersionLabel}
+            />
           </Box>
         )}
 

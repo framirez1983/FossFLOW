@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { useUiStateStore, useUiStateStoreApi } from 'src/stores/uiStateStore';
-import { CoordsUtils, getItemAtTile } from 'src/utils';
+import { CoordsUtils, getItemAtTile, isEditableEventTarget } from 'src/utils';
 import { useScene } from 'src/hooks/useScene';
 import { SlimMouseEvent } from 'src/types';
 
@@ -72,12 +72,7 @@ export const usePanHandlers = () => {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
-      if (
-        target.tagName === 'INPUT' ||
-        target.tagName === 'TEXTAREA' ||
-        target.contentEditable === 'true' ||
-        target.closest('.ql-editor')
-      ) {
+      if (isEditableEventTarget(target)) {
         return;
       }
 

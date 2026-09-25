@@ -12,7 +12,12 @@ const locale: LocaleProps = {
     exportImage: "Esporta come immagine",
     clearCanvas: "Pulisci la tela",
     settings: "Impostazioni",
-    gitHub: "GitHub"
+    gitHub: "GitHub",
+    sectionFile: "File",
+    sectionStorage: "Archiviazione",
+    sectionEdit: "Modifica",
+    sectionSettings: "Impostazioni",
+    sectionHelp: "Aiuto",
   },
   helpDialog: {
     title: "Scorciatoie da tastiera e aiuto",

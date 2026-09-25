@@ -18,6 +18,9 @@ import enUS from 'src/i18n/en-US';
 const App = ({
   initialData,
   mainMenuOptions = MAIN_MENU_OPTIONS,
+  menuItems,
+  mainMenuTriggerSlotId,
+  displayIdentity,
   width = '100%',
   height = '100%',
   onModelUpdated,
@@ -46,6 +49,12 @@ const App = ({
     uiStateActions.setEditorMode(editorMode);
     uiStateActions.setMainMenuOptions(mainMenuOptions);
   }, [editorMode, uiStateActions, mainMenuOptions]);
+
+  useEffect(() => {
+    if (menuItems !== undefined) {
+      uiStateActions.setCustomMenuItems(menuItems);
+    }
+  }, [menuItems, uiStateActions]);
 
   useEffect(() => {
     return () => {
@@ -101,7 +110,10 @@ const App = ({
         }}
       >
         <Renderer {...renderer} />
-        <UiOverlay />
+        <UiOverlay
+          mainMenuTriggerSlotId={mainMenuTriggerSlotId}
+          menuVersionLabel={displayIdentity}
+        />
       </Box>
     </>
   );

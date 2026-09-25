@@ -12,7 +12,12 @@ const locale: LocaleProps = {
     exportImage: "导出为图片",
     clearCanvas: "清空画布",
     settings: "设置",
-    gitHub: "GitHub"
+    gitHub: "GitHub",
+    sectionFile: "文件",
+    sectionStorage: "存储",
+    sectionEdit: "编辑",
+    sectionSettings: "设置",
+    sectionHelp: "帮助",
   },
   helpDialog: {
     title: "键盘快捷键和帮助",

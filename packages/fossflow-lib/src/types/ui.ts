@@ -34,6 +34,21 @@ export interface Mouse {
   } | null;
 }
 
+export interface CustomMenuItem {
+  id: string;
+  label: string;
+  shortcut?: string;
+  disabled?: boolean;
+  /** Render a divider immediately before this item. */
+  dividerBefore?: boolean;
+  onSelect: () => void;
+}
+
+export interface CustomMenuSections {
+  file?: CustomMenuItem[];
+  storage?: CustomMenuItem[];
+}
+
 // Mode types
 export interface InteractionsDisabled {
   type: 'INTERACTIONS_DISABLED';
@@ -199,6 +214,7 @@ export interface UiState {
   connectorInteractionMode: ConnectorInteractionMode;
   expandLabels: boolean;
   iconPackManager: IconPackManagerProps | null;
+  customMenuItems: CustomMenuSections;
 
 }
 
@@ -229,6 +245,7 @@ export interface UiStateActions {
   setConnectorInteractionMode: (mode: ConnectorInteractionMode) => void;
   setExpandLabels: (expand: boolean) => void;
   setIconPackManager: (iconPackManager: IconPackManagerProps | null) => void;
+  setCustomMenuItems: (menuItems: CustomMenuSections) => void;
   setViewOrientation: (viewOrientation: ViewOrientation) => void;
 
 }

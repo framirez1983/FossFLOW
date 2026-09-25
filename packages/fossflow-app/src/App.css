@@ -9,12 +9,47 @@
   background-color: #f5f5f5;
   border-bottom: 1px solid #ddd;
   padding: 10px;
-  display: flex;
-  gap: 10px;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 12px;
   align-items: center;
 }
 
-.toolbar button {
+.toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.toolbar-brand {
+  font-weight: 700;
+  font-size: 15px;
+  color: #333;
+  white-space: nowrap;
+  padding: 0 8px;
+}
+
+.toolbar-right {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  min-width: 0;
+}
+
+/* Host slot for the MainMenu trigger button (portaled from the canvas). */
+.mainmenu-slot {
+  display: inline-flex;
+  align-items: center;
+}
+
+.mainmenu-slot:empty {
+  display: none;
+}
+
+/* Scoped to direct children so the portaled menu trigger keeps its own style. */
+.toolbar-left > button {
   padding: 8px 16px;
   background-color: #007bff;
   color: white;
@@ -24,14 +59,26 @@
   font-size: 14px;
 }
 
-.toolbar button:hover {
+.toolbar-left > button:hover {
   background-color: #0056b3;
 }
 
 .current-diagram {
-  margin-left: auto;
   font-size: 14px;
   color: #666;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+@media (max-width: 760px) {
+  .toolbar {
+    grid-template-columns: auto 1fr;
+  }
+  .toolbar-brand {
+    display: none;
+  }
 }
 
 .fossflow-container {

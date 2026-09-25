@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import { Menu, Typography, Divider, Card } from '@mui/material';
+import { createPortal } from 'react-dom';
+import { Menu, Typography, Divider, Card, ListSubheader } from '@mui/material';
 import {
   Menu as MenuIcon,
   GitHub as GitHubIcon,
@@ -23,9 +24,27 @@ import { useModelStore } from 'src/stores/modelStore';
 import { useHistory } from 'src/hooks/useHistory';
 import { DialogTypeEnum } from 'src/types/ui';
 import { MenuItem } from './MenuItem';
+import { CustomMenuItem } from 'src/types/ui';
 import { useTranslation } from 'src/stores/localeStore';
 
-export const MainMenu = () => {
+export const MainMenu = ({
+  triggerSlotId,
+  versionLabel
+}: {
+  /**
+   * Optional DOM id of a host-provided toolbar slot. When the slot exists,
+   * the existing trigger button is portaled there while the same menu stays
+   * mounted here (MUI renders it in a body portal anchored to the button).
+   * No second menu is created. Falls back to the inline trigger otherwise.
+   */
+  triggerSlotId?: string;
+  /**
+   * Optional override for the user-visible version row. Host apps pass their
+   * display identity here; standalone/lib use falls back to the built
+   * package version. Nothing is hardcoded inside the library.
+   */
+  versionLabel?: string;
+}) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const model = useModelStore((state) => {
     return modelFromModelStore(state);
@@ -36,6 +55,15 @@ export const MainMenu = () => {
   const mainMenuOptions = useUiStateStore((state) => {
     return state.mainMenuOptions;
   });
+  const customMenuItems = useUiStateStore((state) => {
+    return state.customMenuItems;
+  });
+  const customFileItems = customMenuItems.file ?? [];
+  const customStorageItems = customMenuItems.storage ?? [];
+  // When the host app owns file workflows via custom items, the built-in
+  // Open/Export-JSON rows step aside to avoid duplicates. Image export rows
+  // stay: the export dialog is library-owned.
+  const showNativeFileRows = customFileItems.length === 0;
   const uiStateActions = useUiStateStore((state) => {
     return state.actions;
   });
@@ -143,14 +171,22 @@ export const MainMenu = () => {
     return null;
   }
 
+  const trigger = (
+    <IconButton
+      Icon={<MenuIcon />}
+      name="Main menu"
+      onClick={onToggleMenu}
+      isActive={isMainMenuOpen}
+    />
+  );
+  const triggerSlot =
+    triggerSlotId !== undefined
+      ? document.getElementById(triggerSlotId)
+      : null;
+
   return (
-    <UiElement>
-      <IconButton
-        Icon={<MenuIcon />}
-        name="Main menu"
-        onClick={onToggleMenu}
-        isActive={isMainMenuOpen}
-      />
+    <UiElement sx={triggerSlot ? { display: 'none' } : undefined}>
+      {triggerSlot ? createPortal(trigger, triggerSlot) : trigger}
 
       <Menu
         anchorEl={anchorEl}
@@ -170,7 +206,76 @@ export const MainMenu = () => {
         }}
       >
         <Card sx={{ py: 1 }}>
-          {/* Undo/Redo Section */}
+          {/* FILE */}
+          {(customFileItems.length > 0 || showNativeFileRows) && (
+            <ListSubheader disableSticky>{t('sectionFile')}</ListSubheader>
+          )}
+          {customFileItems.map((item: CustomMenuItem) => {
+            return (
+              <React.Fragment key={item.id}>
+                {item.dividerBefore && <Divider />}
+                <MenuItem
+                  disabled={item.disabled}
+                  shortcut={item.shortcut}
+                  onClick={() => {
+                    item.onSelect();
+                    uiStateActions.setIsMainMenuOpen(false);
+                  }}
+                >
+                  {item.label}
+                </MenuItem>
+              </React.Fragment>
+            );
+          })}
+
+          {/* Built-in file rows (hidden when the host owns file workflows) */}
+          {showNativeFileRows && mainMenuOptions.includes('ACTION.OPEN') && (
+            <MenuItem onClick={onOpenModel} Icon={<FolderOpenIcon />}>
+              {t('open')}
+            </MenuItem>
+          )}
+
+          {showNativeFileRows && mainMenuOptions.includes('EXPORT.JSON') && (
+            <MenuItem onClick={onExportAsJSON} Icon={<ExportJsonIcon />}>
+              {t('exportJson')}
+            </MenuItem>
+          )}
+
+          {mainMenuOptions.includes('EXPORT.PNG') && (
+            <MenuItem onClick={onExportAsImage} Icon={<ExportImageIcon />}>
+              {t('exportImage')}
+            </MenuItem>
+          )}
+
+          {/* STORAGE */}
+          {customStorageItems.length > 0 && (
+            <>
+              <Divider />
+              <ListSubheader disableSticky>{t('sectionStorage')}</ListSubheader>
+              {customStorageItems.map((item: CustomMenuItem) => {
+                return (
+                  <React.Fragment key={item.id}>
+                    {item.dividerBefore && <Divider />}
+                    <MenuItem
+                      disabled={item.disabled}
+                      shortcut={item.shortcut}
+                      onClick={() => {
+                        item.onSelect();
+                        uiStateActions.setIsMainMenuOpen(false);
+                      }}
+                    >
+                      {item.label}
+                    </MenuItem>
+                  </React.Fragment>
+                );
+              })}
+            </>
+          )}
+
+          <Divider />
+
+          {/* EDIT */}
+          <ListSubheader disableSticky>{t('sectionEdit')}</ListSubheader>
           <MenuItem
             onClick={handleUndo}
             Icon={<UndoIcon />}
@@ -190,25 +295,6 @@ export const MainMenu = () => {
 
           {(canUndo || canRedo) && sectionVisibility.actions && <Divider />}
 
-          {/* File Actions */}
-          {mainMenuOptions.includes('ACTION.OPEN') && (
-            <MenuItem onClick={onOpenModel} Icon={<FolderOpenIcon />}>
-              {t('open')}
-            </MenuItem>
-          )}
-
-          {mainMenuOptions.includes('EXPORT.JSON') && (
-            <MenuItem onClick={onExportAsJSON} Icon={<ExportJsonIcon />}>
-              {t('exportJson')}
-            </MenuItem>
-          )}
-
-          {mainMenuOptions.includes('EXPORT.PNG') && (
-            <MenuItem onClick={onExportAsImage} Icon={<ExportImageIcon />}>
-              {t('exportImage')}
-            </MenuItem>
-          )}
-
           {mainMenuOptions.includes('ACTION.CLEAR_CANVAS') && (
             <MenuItem onClick={onClearCanvas} Icon={<DeleteOutlineIcon />}>
               {t('clearCanvas')}
@@ -217,6 +303,8 @@ export const MainMenu = () => {
 
           <Divider />
 
+          {/* SETTINGS */}
+          <ListSubheader disableSticky>{t('sectionSettings')}</ListSubheader>
           <MenuItem onClick={onOpenSettings} Icon={<SettingsIcon />}>
             {t('settings')}
           </MenuItem>
@@ -225,6 +313,8 @@ export const MainMenu = () => {
             <>
               <Divider />
 
+              {/* HELP */}
+              <ListSubheader disableSticky>{t('sectionHelp')}</ListSubheader>
               {mainMenuOptions.includes('LINK.GITHUB') && (
                 <MenuItem
                   onClick={() => {
@@ -245,7 +335,7 @@ export const MainMenu = () => {
               {mainMenuOptions.includes('VERSION') && (
                 <MenuItem>
                   <Typography variant="body2" color="text.secondary">
-                    FossFLOW v{PACKAGE_VERSION}
+                    {versionLabel ?? `FossFLOW v${PACKAGE_VERSION}`}
                   </Typography>
                 </MenuItem>
               )}

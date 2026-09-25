@@ -1,7 +1,7 @@
 import type { EditorModeEnum, MainMenuOptions, Size } from './common';
 import type { Model } from './model';
 import type { RendererProps } from './rendererProps';
-import type { ViewOrientation } from './ui';
+import type { CustomMenuSections, ViewOrientation } from './ui';
 
 export type InitialData = Model & {
   fitToView?: boolean;
@@ -37,6 +37,11 @@ export interface LocaleProps {
     clearCanvas: string;
     settings: string;
     gitHub: string;
+    sectionFile: string;
+    sectionStorage: string;
+    sectionEdit: string;
+    sectionSettings: string;
+    sectionHelp: string;
   };
   helpDialog: {
     title: string;
@@ -238,6 +243,19 @@ export interface IconPackManagerProps {
 export interface IsoflowProps {
   initialData?: InitialData;
   mainMenuOptions?: MainMenuOptions;
+  menuItems?: CustomMenuSections;
+  /**
+   * DOM id of a host-provided slot for the MainMenu trigger button. When set
+   * (and the element exists), the floating canvas hamburger is hidden and the
+   * same trigger opens the same menu from the host slot instead.
+   */
+  mainMenuTriggerSlotId?: string;
+  /**
+   * Optional user-facing product identity shown in the MainMenu version row
+   * (e.g. a host app's display branding). Standalone use without an override
+   * keeps showing the built package version. Never hardcoded in the library.
+   */
+  displayIdentity?: string;
   onModelUpdated?: (Model: Model) => void;
   width?: number | string;
   height?: number | string;
