@@ -18,6 +18,7 @@ const locale: LocaleProps = {
     sectionEdit: "Edit",
     sectionSettings: "Settings",
     sectionHelp: "Help",
+    whatsNew: "What's New",
   },
   helpDialog: {
     title: "Keyboard Shortcuts & Help",
@@ -199,7 +200,33 @@ const locale: LocaleProps = {
     configPath2: "in the top left to access Configuration.",
     canDisable: "You can disable this behaviour if you wish.",
     signature: "-Stan"
+  },
+  whatsNew: {
+    title: "What's New in FossFLOW 2.5D v{version}",
+    intro: "Welcome to FossFLOW 2.5D! This release brings major improvements to help you create better diagrams faster.",
+    highlights: "Key improvements in this release:",
+    rotatableViewsTitle: "Rotatable Isometric Views",
+    rotatableViewsDesc: "Switch between four isometric orientations (NE, SE, SW, NW) to view your diagrams from different angles. Perfect for network diagrams, floor plans, and technical drawings.",
+    multiViewTitle: "Multi-View Diagrams",
+    multiViewDesc: "Create multiple named views within a single document. Switch between different perspectives, zoom levels, and layer configurations instantly.",
+    fossflowFormatTitle: "FossFLOW (.fossflow) File Format",
+    fossflowFormatDesc: "A new, compact, and portable file format for your diagrams. Self-contained, versioned, and designed for long-term archival and sharing.",
+    serverStorageTitle: "Server Storage",
+    serverStorageDesc: "Save diagrams directly to a FossFLOW server. Collaborate with your team, access diagrams from anywhere, and keep your work safe.",
+    iconLibraryTitle: "Server-Backed Icon Library",
+    iconLibraryDesc: "Build a reusable library of custom icons stored on the server. Import once, use everywhere - icons are copied into each diagram for full portability.",
+    exportFidelityTitle: "Improved Export Fidelity",
+    exportFidelityDesc: "PNG and SVG exports now perfectly match what you see on screen. Text wrapping, label backgrounds, and rotated views all render correctly.",
+    labelOpacityTitle: "Label Background Opacity",
+    labelOpacityDesc: "Fine-tune label readability with per-label or global background opacity controls. Perfect for dense diagrams where labels overlap shapes.",
+    uiLayoutTitle: "Professional UI Layout",
+    uiLayoutDesc: "Redesigned toolbar, compact vertical tool palette, unified main menu, and improved header. Tools on the left, properties on the right - a familiar professional layout.",
+    noteTitle: "Note",
+    noteDesc: "This dialog appears once per version. Access it anytime from Help > What's New in the main menu.",
+    close: "Close",
+    dontShowAgain: "Don't show again for this version"
+  },
+
   }
-};
 
 export default locale;

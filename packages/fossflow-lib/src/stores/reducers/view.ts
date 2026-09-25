@@ -141,6 +141,9 @@ export const view = ({ action, payload, ctx }: ViewReducerParams) => {
     case 'DELETE_RECTANGLE':
       newState = rectangleReducers.deleteRectangle(payload, ctx);
       break;
+    case 'TOGGLE_RECTANGLE_LOCK':
+      newState = rectangleReducers.toggleRectangleLock(payload, ctx);
+      break;
     default:
       throw new Error('Invalid action.');
   }

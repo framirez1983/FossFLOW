@@ -12,10 +12,11 @@ import { getItemAtTile } from './renderer';
 export const findNearestUnoccupiedTile = (
   targetTile: Coords,
   scene: ReturnType<typeof useScene>,
-  maxDistance: number = 10
+  maxDistance: number = 10,
+  skipLockedRectangles: boolean = true
 ): Coords | null => {
   // Check if the target tile itself is unoccupied
-  const itemAtTarget = getItemAtTile({ tile: targetTile, scene });
+  const itemAtTarget = getItemAtTile({ tile: targetTile, scene, skipLockedRectangles: true });
   if (!itemAtTarget || itemAtTarget.type !== 'ITEM') {
     return targetTile;
   }
@@ -49,7 +50,7 @@ export const findNearestUnoccupiedTile = (
         };
 
         // Check if this tile is within bounds and unoccupied
-        const itemAtTile = getItemAtTile({ tile: currentTile, scene });
+        const itemAtTile = getItemAtTile({ tile: currentTile, scene, skipLockedRectangles: true });
         if (!itemAtTile || itemAtTile.type !== 'ITEM') {
           return currentTile;
         }
@@ -107,7 +108,7 @@ export const findNearestUnoccupiedTilesForGroup = (
               const checkKey = `${checkTile.x},${checkTile.y}`;
               
               if (!occupiedTiles.has(checkKey)) {
-                const itemAtTile = getItemAtTile({ tile: checkTile, scene });
+                const itemAtTile = getItemAtTile({ tile: checkTile, scene, skipLockedRectangles: true });
                 if (!itemAtTile || itemAtTile.type !== 'ITEM' || excludeIds.includes(itemAtTile.id)) {
                   foundTile = checkTile;
                   break;

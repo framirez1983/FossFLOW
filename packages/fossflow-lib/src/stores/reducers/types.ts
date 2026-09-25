@@ -83,6 +83,10 @@ type ViewReducerAction =
   | {
       action: 'DELETE_RECTANGLE';
       payload: Parameters<typeof rectangleReducers.deleteRectangle>[0];
+    }
+  | {
+      action: 'TOGGLE_RECTANGLE_LOCK';
+      payload: Parameters<typeof rectangleReducers.toggleRectangleLock>[0];
     };
 
 export type ViewReducerParams = ViewReducerAction & { ctx: ViewReducerContext };

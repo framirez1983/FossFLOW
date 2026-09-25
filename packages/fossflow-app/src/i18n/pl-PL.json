@@ -37,5 +37,8 @@
         "autoSaveFailed": "Dysk pełny! Użyj Menedżera dysku, aby zwolnić miejsce.",
         "beforeUnload": "Masz niezapisane zmiany. Czy na pewno chcesz wyjść?",
         "quotaExceeded": "Przekroczono limit miejsca na dysku. Proszę wyeksportować ważne diagramy i zwolnić trochę miejsca."
+    },
+    "mainMenu": {
+        "whatsNew": "Co nowego"
     }
 }

@@ -80,7 +80,8 @@ export const TEXTBOX_FONT_WEIGHT = 'bold';
 export const RECTANGLE_DEFAULTS: Required<
   Omit<Rectangle, 'id' | 'from' | 'to' | 'color'>
 > = {
-  customColor: ''
+  customColor: '',
+  locked: false
 };
 
 export const ZOOM_INCREMENT = 0.05;

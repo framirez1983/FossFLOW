@@ -5,7 +5,8 @@ import {
   Add as ZoomInIcon,
   Remove as ZoomOutIcon,
   CropFreeOutlined as FitToScreenIcon,
-  Help as HelpIcon
+  Help as HelpIcon,
+  Explore as CompassIcon
 } from '@mui/icons-material';
 import { Stack, Box, Typography, Divider } from '@mui/material';
 import { toPx } from 'src/utils';
@@ -15,6 +16,7 @@ import { MAX_ZOOM, MIN_ZOOM } from 'src/config';
 import { useUiStateStore } from 'src/stores/uiStateStore';
 import { useDiagramUtils } from 'src/hooks/useDiagramUtils';
 import { DialogTypeEnum } from 'src/types/ui';
+import { getCompassNeedleRotation, getCompassLabel } from 'src/utils/compass';
 
 export const ZoomControls = () => {
   const uiStateStoreActions = useUiStateStore((state) => {
@@ -66,6 +68,34 @@ export const ZoomControls = () => {
           <IconButton name="Rotate view clockwise" Icon={<RotateRight />}
             onClick={() => uiStateStoreActions.rotateView(true)} />
         </Stack>
+      </UiElement>
+      <UiElement sx={{ ml: 1 }}>
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            minWidth: 40,
+            minHeight: 40
+          }}
+          title="Compass: North indicator"
+        >
+          <Box
+            sx={{
+              transform: `rotate(${getCompassNeedleRotation(orientation)}deg)`,
+              transition: 'transform 0.3s ease',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
+            <CompassIcon sx={{ fontSize: 20, color: 'primary.main' }} />
+          </Box>
+          <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, whiteSpace: 'nowrap' }}>
+            {getCompassLabel()}
+          </Typography>
+        </Box>
       </UiElement>
       <UiElement>
         <IconButton

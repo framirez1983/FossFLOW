@@ -5,7 +5,9 @@ import {
   ModeActions,
   ModeActionsAction,
   Coords,
-  View
+  View,
+  Mode,
+  CursorMode
 } from 'src/types';
 import {
   getItemAtTile,
@@ -74,6 +76,8 @@ const getAnchor = (
 
   return anchor;
 };
+
+const isCursorMode = (mode: Mode): mode is CursorMode => mode.type === 'CURSOR';
 
 const mousedown: ModeActionsAction = ({
   uiState,
@@ -158,17 +162,29 @@ export const Cursor: ModeActions = {
 
     const hasMoved = uiState.mouse.mousedown && hasMovedTile(uiState.mouse);
 
-    if (uiState.mode.mousedownItem && !hasMoved) {
+    if (isCursorMode(uiState.mode) && uiState.mode.mousedownItem && !hasMoved) {
       if (uiState.mode.mousedownItem.type === 'ITEM') {
         uiState.actions.setItemControls({
           type: 'ITEM',
           id: uiState.mode.mousedownItem.id
         });
-      } else if (uiState.mode.mousedownItem.type === 'RECTANGLE') {
-        uiState.actions.setItemControls({
-          type: 'RECTANGLE',
-          id: uiState.mode.mousedownItem.id
-        });
+      } else if (isCursorMode(uiState.mode) && uiState.mode.mousedownItem?.type === 'RECTANGLE') {
+        const cursorMode = uiState.mode;
+        const rectangle = scene.rectangles.find(r => r.id === cursorMode.mousedownItem!.id);
+        if (rectangle?.locked) {
+          // Locked rectangles show controls but don't enter transform mode
+          uiState.actions.setItemControls({
+            type: 'RECTANGLE',
+            id: uiState.mode.mousedownItem.id
+          });
+        } else {
+          uiState.actions.setMode({
+            type: 'RECTANGLE.TRANSFORM',
+            id: uiState.mode.mousedownItem.id,
+            selectedAnchor: null,
+            showCursor: true
+          });
+        }
       } else if (uiState.mode.mousedownItem.type === 'CONNECTOR') {
         const clickTile = uiState.mouse.mousedown?.tile ?? uiState.mouse.position.tile;
         const connectorIds = getConnectorsAtTile({ tile: clickTile, scene });

@@ -44,7 +44,7 @@ const buildModel = (): Model => {  return {
             labels: [{ id: 'lx1', text: 'Link', position: 50 }]
           }
         ],
-        rectangles: [{ id: 'r1', from: { x: 0, y: 0 }, to: { x: 2, y: 2 } }],
+        rectangles: [{ id: 'r1', from: { x: 0, y: 0 }, to: { x: 2, y: 2 }, locked: false }],
         textBoxes: [{ id: 'tb1', tile: { x: 3, y: 3 }, content: 'Note' }]
       },
       {

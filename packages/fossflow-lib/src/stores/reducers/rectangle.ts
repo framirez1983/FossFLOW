@@ -22,6 +22,25 @@ export const updateRectangle = (
   return newState;
 };
 
+export const toggleRectangleLock = (
+  id: string,
+  { viewId, state }: ViewReducerContext
+): State => {
+  const view = getItemByIdOrThrow(state.model.views, viewId);
+
+  const newState = produce(state, (draft) => {
+    const { rectangles } = draft.model.views[view.index];
+
+    if (!rectangles) return;
+
+    const rectangle = getItemByIdOrThrow(rectangles, id);
+    const newRectangle = { ...rectangle.value, locked: !rectangle.value.locked };
+    rectangles[rectangle.index] = newRectangle;
+  });
+
+  return newState;
+};
+
 export const createRectangle = (
   newRectangle: Rectangle,
   { viewId, state }: ViewReducerContext

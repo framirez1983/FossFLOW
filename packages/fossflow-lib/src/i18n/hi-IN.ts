@@ -1,5 +1,6 @@
 import { LocaleProps } from '../types/isoflowProps';
 
+// @ts-ignore
 const locale: LocaleProps = {
   common: {
     exampleText: "यह एक उदाहरण पाठ है"
@@ -18,6 +19,7 @@ const locale: LocaleProps = {
     sectionEdit: "संपादित करें",
     sectionSettings: "सेटिंग्स",
     sectionHelp: "सहायता",
+    whatsNew: "नया क्या है",
   },
   helpDialog: {
     title: "कीबोर्ड शॉर्टकट और सहायता",

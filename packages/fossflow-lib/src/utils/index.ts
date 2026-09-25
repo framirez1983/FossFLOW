@@ -18,3 +18,4 @@ export * from './normalizeUserIcons';
 export * from './sanitizeSvg';
 export * from './diagramFile';
 export * from './editableTarget';
+export * from './compass';

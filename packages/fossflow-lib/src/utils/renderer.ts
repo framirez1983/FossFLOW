@@ -454,11 +454,13 @@ export const getTextBoxEndTile = (textBox: TextBox, size: Size) => {
 interface GetItemAtTile {
   tile: Coords;
   scene: ReturnType<typeof useScene>;
+  skipLockedRectangles?: boolean;
 }
 
 export const getItemAtTile = ({
   tile,
-  scene
+  scene,
+  skipLockedRectangles = false
 }: GetItemAtTile): ItemReference | null => {
   const viewItem = scene.items.find((item) => {
     return CoordsUtils.isEqual(item.tile, tile);
@@ -524,7 +526,8 @@ export const getItemAtTile = ({
     };
   }
 
-  const rectangle = scene.rectangles.find(({ from, to }) => {
+  const rectangle = scene.rectangles.find(({ from, to, locked }) => {
+    if (skipLockedRectangles && locked) return false;
     return isWithinBounds(tile, [from, to]);
   });
 

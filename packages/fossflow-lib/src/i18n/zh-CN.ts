@@ -1,5 +1,6 @@
 import { LocaleProps } from '../types/isoflowProps';
 
+// @ts-ignore
 const locale: LocaleProps = {
   common: {
     exampleText: "这是一段示例文本"
@@ -18,6 +19,7 @@ const locale: LocaleProps = {
     sectionEdit: "编辑",
     sectionSettings: "设置",
     sectionHelp: "帮助",
+    whatsNew: "更新内容",
   },
   helpDialog: {
     title: "键盘快捷键和帮助",

@@ -31,7 +31,7 @@ describe('rectangle reducer', () => {
     mockRectangle = {
       id: 'rect1',
       from: { x: 0, y: 0 },
-      to: { x: 100, y: 50 },
+      to: { x: 100, y: 50 }, locked: false,
       color: 'color1'
     };
 
@@ -124,7 +124,7 @@ describe('rectangle reducer', () => {
       const newRectangle: Rectangle = {
         id: 'rect2',
         from: { x: 50, y: 50 },
-        to: { x: 200, y: 125 },
+        to: { x: 200, y: 125 }, locked: false,
         color: 'color3'
       };
       
@@ -142,8 +142,7 @@ describe('rectangle reducer', () => {
       const newRectangle: Rectangle = {
         id: 'rect2',
         from: { x: 50, y: 50 },
-        to: { x: 200, y: 125 }
-      };
+        to: { x: 200, y: 125 }, locked: false};
       
       const result = createRectangle(newRectangle, mockContext);
       
@@ -155,7 +154,7 @@ describe('rectangle reducer', () => {
       const newRectangle: Rectangle = {
         id: 'rect2',
         from: { x: 50, y: 50 },
-        to: { x: 200, y: 125 },
+        to: { x: 200, y: 125 }, locked: false,
         color: 'color6',
         customColor: '#FF5733'
       };
@@ -173,8 +172,7 @@ describe('rectangle reducer', () => {
       const newRectangle: Rectangle = {
         id: 'rect2',
         from: { x: 50, y: 50 },
-        to: { x: 200, y: 125 }
-      };
+        to: { x: 200, y: 125 }, locked: false};
       
       expect(() => {
         createRectangle(newRectangle, mockContext);
@@ -187,8 +185,7 @@ describe('rectangle reducer', () => {
       const newRectangle: Rectangle = {
         id: 'rect2',
         from: { x: 50, y: 50 },
-        to: { x: 200, y: 125 }
-      };
+        to: { x: 200, y: 125 }, locked: false};
       
       const result = createRectangle(newRectangle, mockContext);
       
@@ -233,8 +230,7 @@ describe('rectangle reducer', () => {
       const rect2: Rectangle = {
         id: 'rect2',
         from: { x: 100, y: 100 },
-        to: { x: 180, y: 140 }
-      };
+        to: { x: 180, y: 140 }, locked: false};
       
       mockState.model.views[0].rectangles = [mockRectangle, rect2];
       
@@ -261,8 +257,7 @@ describe('rectangle reducer', () => {
       let result = createRectangle({
         id: 'rect2',
         from: { x: 200, y: 200 },
-        to: { x: 250, y: 250 }
-      }, { ...mockContext, state: mockState });
+        to: { x: 250, y: 250 }, locked: false}, { ...mockContext, state: mockState });
       
       // Update
       result = updateRectangle({
@@ -282,8 +277,7 @@ describe('rectangle reducer', () => {
       const rectangles: Rectangle[] = Array.from({ length: 5 }, (_, i) => ({
         id: `rect${i}`,
         from: { x: i * 20, y: i * 20 },
-        to: { x: i * 20 + 100, y: i * 20 + 50 }
-      }));
+        to: { x: i * 20 + 100, y: i * 20 + 50 }, locked: false}));
       
       mockState.model.views[0].rectangles = rectangles;
       

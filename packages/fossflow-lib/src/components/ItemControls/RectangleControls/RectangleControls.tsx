@@ -20,7 +20,7 @@ export const RectangleControls = ({ id }: Props) => {
     return state.actions;
   });
   const rectangle = useRectangle(id);
-  const { updateRectangle, deleteRectangle } = useScene();
+  const { updateRectangle, deleteRectangle, toggleRectangleLock } = useScene();
   const [useCustomColor, setUseCustomColor] = useState(!!rectangle?.customColor);
 
   // If rectangle doesn't exist, return null
@@ -78,6 +78,20 @@ export const RectangleControls = ({ id }: Props) => {
               activeColor={rectangle.color}
             />
           )}
+        </Section>
+        <Section>
+          <FormControlLabel
+            control={
+              <Switch
+                checked={rectangle.locked ?? false}
+                onChange={(e) => {
+                  toggleRectangleLock(rectangle.id);
+                }}
+              />
+            }
+            label="Lock position"
+            sx={{ mb: 2 }}
+          />
         </Section>
         <Section>
           <Box>

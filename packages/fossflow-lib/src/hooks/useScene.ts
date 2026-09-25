@@ -608,6 +608,21 @@ export const useScene = () => {
     [getState, setState, currentViewId, saveToHistoryBeforeChange]
   );
 
+  const toggleRectangleLock = useCallback(
+    (id: string) => {
+      if (!currentViewId) return;
+
+      saveToHistoryBeforeChange();
+      const newState = reducers.view({
+        action: 'TOGGLE_RECTANGLE_LOCK',
+        payload: id,
+        ctx: { viewId: currentViewId, state: getState() }
+      });
+      setState(newState);
+    },
+    [getState, setState, currentViewId, saveToHistoryBeforeChange]
+  );
+
   const transaction = useCallback(
     (operations: () => void) => {
       if (transactionInProgress.current) {
@@ -756,6 +771,7 @@ export const useScene = () => {
     createRectangle,
     updateRectangle,
     deleteRectangle,
+    toggleRectangleLock,
     transaction,
     placeIcon,
     copyObjectsToClipboard,

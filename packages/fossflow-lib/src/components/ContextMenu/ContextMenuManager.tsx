@@ -68,7 +68,8 @@ export const ContextMenuManager = ({ anchorEl }: Props) => {
                 id: generateId(),
                 color: model.colors[0].id,
                 from: contextMenu.tile,
-                to: contextMenu.tile
+                to: contextMenu.tile,
+                locked: false
               });
             }
             onClose();

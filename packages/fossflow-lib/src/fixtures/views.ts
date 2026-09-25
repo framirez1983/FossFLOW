@@ -33,13 +33,11 @@ export const views: Model['views'] = [
         id: 'rectangle1',
         color: 'color1',
         from: { x: 0, y: 0 },
-        to: { x: 2, y: 2 }
-      },
+        to: { x: 2, y: 2 }, locked: false},
       {
         id: 'rectangle2',
         from: { x: 0, y: 0 },
-        to: { x: 2, y: 2 }
-      }
+        to: { x: 2, y: 2 }, locked: false}
     ],
     connectors: [
       {

@@ -16,6 +16,13 @@ export const TransformRectangle: ModeActions = {
     )
       return;
 
+    // Check if rectangle is locked
+    const rectangle = getItemByIdOrThrow(
+      scene.rectangles,
+      uiState.mode.id
+    ).value;
+    if (rectangle.locked) return;
+
     if (uiState.mode.selectedAnchor) {
       // User is dragging an anchor
       const rectangle = getItemByIdOrThrow(

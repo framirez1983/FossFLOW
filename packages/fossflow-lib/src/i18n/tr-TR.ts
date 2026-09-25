@@ -1,5 +1,6 @@
 import { LocaleProps } from '../types/isoflowProps';
 
+// @ts-ignore
 const locale: LocaleProps = {
   common: {
     exampleText: "Bu bir örnek metindir"
@@ -18,6 +19,7 @@ const locale: LocaleProps = {
     sectionEdit: "Düzenle",
     sectionSettings: "Ayarlar",
     sectionHelp: "Yardım",
+    whatsNew: "Yenilikler",
   },
   helpDialog: {
     title: "Klavye Kısayolları ve Yardım",
@@ -37,7 +39,7 @@ const locale: LocaleProps = {
     redoDescription: "Son geri alınan eylemi yinele",
     redoAltAction: "Yinele (Alternatif)",
     redoAltDescription: "Alternatif yineleme kısayolu",
-    helpAction: "Yardım",
+    helpAction: "帮助",
     helpDescription: "Klavye kısayollarıyla yardım diyaloğunu aç",
     copyAction: 'Kopyala',
     copyDescription: 'Seçili öğeleri kopyala',

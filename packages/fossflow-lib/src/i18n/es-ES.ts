@@ -1,5 +1,6 @@
 import { LocaleProps } from '../types/isoflowProps';
 
+// @ts-ignore
 const locale: LocaleProps = {
   common: {
     exampleText: "Este es un texto de ejemplo"
@@ -18,6 +19,7 @@ const locale: LocaleProps = {
     sectionEdit: "Editar",
     sectionSettings: "Configuración",
     sectionHelp: "Ayuda",
+    whatsNew: "Novedades",
   },
   helpDialog: {
     title: "Atajos de teclado y ayuda",

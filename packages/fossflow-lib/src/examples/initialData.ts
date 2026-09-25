@@ -697,38 +697,32 @@ export const initialData: InitialData = {
           id: '75637566-6d10-49fb-b3ec-85584250475d',
           color: 'color6',
           from: { x: 1, y: -10 },
-          to: { x: 6, y: -12 }
-        },
+          to: { x: 6, y: -12 }, locked: false},
         {
           id: '35cbdf0d-daa1-4939-9901-dd9aee36903f',
           color: 'color2',
           from: { x: 15, y: 4 },
-          to: { x: 17, y: -4 }
-        },
+          to: { x: 17, y: -4 }, locked: false},
         {
           id: 'ae50ce7d-7b3e-49ec-8fe0-e2e09c4f2dfa',
           color: 'color7',
           from: { x: 0, y: 13 },
-          to: { x: 8, y: 11 }
-        },
+          to: { x: 8, y: 11 }, locked: false},
         {
           id: 'e35ec239-f1eb-4e83-9112-d3b6b3f01f2c',
           color: 'color1',
           from: { x: -4, y: 9 },
-          to: { x: -12, y: 6 }
-        },
+          to: { x: -12, y: 6 }, locked: false},
         {
           id: '27bea545-8505-4ebe-ae72-01de85833465',
           color: 'color1',
           from: { x: -4, y: -6 },
-          to: { x: -12, y: -10 }
-        },
+          to: { x: -12, y: -10 }, locked: false},
         {
           id: '0a74d0a7-b987-480f-ada1-f5a575eae0b9',
           color: 'color5',
           from: { x: 3, y: 1 },
-          to: { x: 5, y: -1 }
-        }
+          to: { x: 5, y: -1 }, locked: false}
       ],
       textBoxes: [
         {

@@ -75,6 +75,7 @@ const dragItems = (
       // 3. Update rectangles (chained from textbox state)
       rectangleRefs.forEach((item) => {
         const rectangle = getItemByIdOrThrow(scene.rectangles, item.id).value;
+        if (rectangle.locked) return; // Skip locked rectangles
         currentState = scene.updateRectangle(item.id, {
           from: CoordsUtils.add(rectangle.from, delta),
           to: CoordsUtils.add(rectangle.to, delta)

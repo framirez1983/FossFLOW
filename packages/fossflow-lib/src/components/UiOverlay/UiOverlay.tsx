@@ -18,6 +18,7 @@ import { ViewSwitcher } from 'src/components/ViewSwitcher/ViewSwitcher';
 import { ExportImageDialog } from '../ExportImageDialog/ExportImageDialog';
 import { HelpDialog } from '../HelpDialog/HelpDialog';
 import { SettingsDialog } from '../SettingsDialog/SettingsDialog';
+import { WhatsNewDialog } from '../WhatsNewDialog/WhatsNewDialog';
 import { ConnectorHintTooltip } from '../ConnectorHintTooltip/ConnectorHintTooltip';
 import { ConnectorEmptySpaceTooltip } from '../ConnectorEmptySpaceTooltip/ConnectorEmptySpaceTooltip';
 import { ConnectorRerouteTooltip } from '../ConnectorRerouteTooltip/ConnectorRerouteTooltip';
@@ -264,6 +265,8 @@ export const UiOverlay = ({
       {dialog === DialogTypeEnum.HELP && <HelpDialog />}
 
       {dialog === DialogTypeEnum.SETTINGS && <SettingsDialog iconPackManager={iconPackManager || undefined} />}
+
+      {dialog === DialogTypeEnum.WHATS_NEW && <WhatsNewDialog />}
 
       {/* Show hint tooltips only in editable mode */}
       {editorMode === EditorModeEnum.EDITABLE && <ConnectorHintTooltip toolMenuRef={toolMenuRef} />}

@@ -43,6 +43,7 @@ export interface LocaleProps {
     sectionEdit: string;
     sectionSettings: string;
     sectionHelp: string;
+    whatsNew?: string;
   };
   helpDialog: {
     title: string;
@@ -224,6 +225,31 @@ export interface LocaleProps {
     configPath2: string;
     canDisable: string;
     signature: string;
+  };
+  whatsNew: {
+    title: string;
+    intro: string;
+    highlights: string;
+    rotatableViewsTitle: string;
+    rotatableViewsDesc: string;
+    multiViewTitle: string;
+    multiViewDesc: string;
+    fossflowFormatTitle: string;
+    fossflowFormatDesc: string;
+    serverStorageTitle: string;
+    serverStorageDesc: string;
+    iconLibraryTitle: string;
+    iconLibraryDesc: string;
+    exportFidelityTitle: string;
+    exportFidelityDesc: string;
+    labelOpacityTitle: string;
+    labelOpacityDesc: string;
+    uiLayoutTitle: string;
+    uiLayoutDesc: string;
+    noteTitle: string;
+    noteDesc: string;
+    close: string;
+    dontShowAgain: string;
   };
   // other namespaces can be added here
 }

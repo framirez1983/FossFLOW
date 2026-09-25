@@ -27,7 +27,7 @@ export const getTargetTileFunction = (firstPastedObject: PastedObject, mouseTile
           :
           item.tile;
       const tileDelta =  CoordsUtils.subtract(mouseTile, firstTile);
-      return findNearestUnoccupiedTile(CoordsUtils.add(currentItemTile, tileDelta), scene) || { x: 0, y: 0 };
+      return findNearestUnoccupiedTile(CoordsUtils.add(currentItemTile, tileDelta), scene, 10, true) || { x: 0, y: 0 };
     }
 
 const isObject = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null;

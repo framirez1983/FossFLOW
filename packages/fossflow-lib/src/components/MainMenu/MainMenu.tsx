@@ -315,6 +315,14 @@ export const MainMenu = ({
 
               {/* HELP */}
               <ListSubheader disableSticky>{t('sectionHelp')}</ListSubheader>
+              <MenuItem
+                onClick={() => {
+                  uiStateActions.setIsMainMenuOpen(false);
+                  uiStateActions.setDialog(DialogTypeEnum.WHATS_NEW);
+                }}
+              >
+                {t('whatsNew')}
+              </MenuItem>
               {mainMenuOptions.includes('LINK.GITHUB') && (
                 <MenuItem
                   onClick={() => {

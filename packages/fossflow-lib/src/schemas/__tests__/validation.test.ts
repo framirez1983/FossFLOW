@@ -103,8 +103,7 @@ describe('Model validation works correctly', () => {
       id: 'invalidRectangle',
       color: 'invalidColor',
       from: { x: 0, y: 0 },
-      to: { x: 2, y: 2 }
-    };
+      to: { x: 2, y: 2 }, locked: false};
 
     const model = produce(modelFixture, (draft) => {
       draft.views[0].rectangles?.push(invalidRectangle);
@@ -149,8 +148,7 @@ describe('modelSchema Zod validation', () => {
                 id: 'rect-invalid',
                 color: 'notAColor',
                 from: { x: 0, y: 0 },
-                to: { x: 1, y: 1 }
-              }
+                to: { x: 1, y: 1 }, locked: false}
             ]
           }
         : view;
