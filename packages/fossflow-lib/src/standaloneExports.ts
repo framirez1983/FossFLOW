@@ -8,7 +8,12 @@ export { generateExportFilename } from 'src/utils/exportOptions';
 export type { ExportFilenameContext } from 'src/utils/exportOptions';
 export { parseDiagramFileUpload } from 'src/utils/diagramFile';
 export { isEditableEventTarget } from 'src/utils/editableTarget';
-export { getCompassNeedleRotation, getCompassLabel } from 'src/utils/compass';
+export {
+  WORLD_NORTH,
+  getCompassNorthVector,
+  getCompassNeedleRotation,
+  getCompassNeedleBearing
+} from 'src/utils/compass';
 export {
   DIAGRAM_FILE_EXTENSION,
   LEGACY_DIAGRAM_FILE_EXTENSION,
