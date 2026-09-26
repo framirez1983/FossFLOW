@@ -2,7 +2,8 @@ import {
   getItemByIdOrThrow,
   getBoundingBox,
   convertBoundsToNamedAnchors,
-  hasMovedTile
+  hasMovedTile,
+  isRectangleLocked
 } from 'src/utils';
 import { ModeActions } from 'src/types';
 
@@ -16,12 +17,8 @@ export const TransformRectangle: ModeActions = {
     )
       return;
 
-    // Check if rectangle is locked
-    const rectangle = getItemByIdOrThrow(
-      scene.rectangles,
-      uiState.mode.id
-    ).value;
-    if (rectangle.locked) return;
+    // A locked rectangle keeps its selection outline but refuses to resize.
+    if (isRectangleLocked(scene, uiState.mode.id)) return;
 
     if (uiState.mode.selectedAnchor) {
       // User is dragging an anchor

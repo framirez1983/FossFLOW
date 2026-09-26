@@ -17,6 +17,8 @@ export const RectangleTransformControls = ({ id }: Props) => {
   const onAnchorMouseDown = useCallback(
     (key: AnchorPosition) => {
       if (!rectangle) return;
+      // Locked rectangles never enter transform mode from an anchor.
+      if (rectangle.locked) return;
       uiStateActions.setMode({
         type: 'RECTANGLE.TRANSFORM',
         id: rectangle.id,
@@ -24,7 +26,7 @@ export const RectangleTransformControls = ({ id }: Props) => {
         showCursor: true
       });
     },
-    [rectangle?.id, uiStateActions]
+    [rectangle?.id, rectangle?.locked, uiStateActions]
   );
 
   if (!rectangle) {
@@ -36,6 +38,7 @@ export const RectangleTransformControls = ({ id }: Props) => {
       from={rectangle.from}
       to={rectangle.to}
       onAnchorMouseDown={onAnchorMouseDown}
+      locked={!!rectangle.locked}
     />
   );
 };

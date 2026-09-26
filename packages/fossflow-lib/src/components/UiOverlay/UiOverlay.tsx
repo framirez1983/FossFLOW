@@ -219,7 +219,7 @@ export const UiOverlay = ({
                 height: '100%'
               }}
             >
-              <Stack direction="row" alignItems="center">
+              <Stack direction="row" alignItems="center" sx={{ userSelect: 'none' }}>
                 <Typography fontWeight={600} color="text.secondary">
                   {title}
                 </Typography>

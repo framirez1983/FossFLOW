@@ -18,7 +18,8 @@ import {
   generateId,
   CoordsUtils,
   getAnchorTile,
-  connectorPathTileToGlobal
+  connectorPathTileToGlobal,
+  isRectangleLocked
 } from 'src/utils';
 import { useScene } from 'src/hooks/useScene';
 
@@ -106,11 +107,10 @@ const mousedown: ModeActionsAction = ({
 
     uiState.actions.setItemControls(null);
 
-    // Show context menu for empty space on left click
-    uiState.actions.setContextMenu({
-      type: 'EMPTY',
-      tile: uiState.mouse.position.tile
-    });
+    // Left click on empty canvas is deselect only. The creation menu
+    // (Add Node / Add Rectangle) is a right-click action, so any menu that is
+    // already open is dismissed rather than re-opened here.
+    uiState.actions.setContextMenu(null);
   }
 };
 
@@ -138,6 +138,14 @@ export const Cursor: ModeActions = {
       };
     }
 
+    // A locked rectangle is a background surface. It stays selectable, but
+    // dragging it must not move it, so we deliberately do not enter DRAG_ITEMS.
+    // Staying in CURSOR keeps the mouseup handler reachable, which is what
+    // actually opens the rectangle's properties panel.
+    if (item?.type === 'RECTANGLE' && isRectangleLocked(scene, item.id)) {
+      return;
+    }
+
     if (item) {
       uiState.actions.setMode({
         type: 'DRAG_ITEMS',
@@ -147,11 +155,17 @@ export const Cursor: ModeActions = {
       });
     } else {
       // If no item is being dragged and the mouse has moved, switch to PAN mode
-      // Only do this if the drag started on empty space
+      // Only do this if the drag started on empty space.
+      //
+      // `temp` marks this as a transient pan entered automatically from the
+      // cursor, so Pan.mouseup restores the cursor afterwards. The Hand tool
+      // (and the Pan hotkey / read-only starting mode) deliberately set PAN
+      // without `temp`, which is what makes an explicitly selected Pan stick.
       if (uiState.mouse.mousedown) {
         uiState.actions.setMode({
           type: 'PAN',
-          showCursor: false
+          showCursor: false,
+          temp: true
         });
       }
     }
@@ -168,23 +182,13 @@ export const Cursor: ModeActions = {
           type: 'ITEM',
           id: uiState.mode.mousedownItem.id
         });
-      } else if (isCursorMode(uiState.mode) && uiState.mode.mousedownItem?.type === 'RECTANGLE') {
-        const cursorMode = uiState.mode;
-        const rectangle = scene.rectangles.find(r => r.id === cursorMode.mousedownItem!.id);
-        if (rectangle?.locked) {
-          // Locked rectangles show controls but don't enter transform mode
-          uiState.actions.setItemControls({
-            type: 'RECTANGLE',
-            id: uiState.mode.mousedownItem.id
-          });
-        } else {
-          uiState.actions.setMode({
-            type: 'RECTANGLE.TRANSFORM',
-            id: uiState.mode.mousedownItem.id,
-            selectedAnchor: null,
-            showCursor: true
-          });
-        }
+      } else if (uiState.mode.mousedownItem.type === 'RECTANGLE') {
+        // Locked or not, a rectangle click selects it and opens its properties
+        // panel. Geometry mutation is refused separately (see the reducer).
+        uiState.actions.setItemControls({
+          type: 'RECTANGLE',
+          id: uiState.mode.mousedownItem.id
+        });
       } else if (uiState.mode.mousedownItem.type === 'CONNECTOR') {
         const clickTile = uiState.mouse.mousedown?.tile ?? uiState.mouse.position.tile;
         const connectorIds = getConnectorsAtTile({ tile: clickTile, scene });

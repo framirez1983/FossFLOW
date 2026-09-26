@@ -454,6 +454,12 @@ export const getTextBoxEndTile = (textBox: TextBox, size: Size) => {
 interface GetItemAtTile {
   tile: Coords;
   scene: ReturnType<typeof useScene>;
+  /**
+   * Opt out of locked rectangles. Only placement/creation paths should set this
+   * so a locked rectangle behaves as a background surface. Selection (Cursor
+   * mode) must leave it false, otherwise locked rectangles become impossible to
+   * click and the user cannot reach their properties to unlock them.
+   */
   skipLockedRectangles?: boolean;
 }
 

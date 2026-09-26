@@ -8,7 +8,8 @@ import {
   hasMovedTile,
   getAnchorParent,
   getItemAtTile,
-  findNearestUnoccupiedTilesForGroup
+  findNearestUnoccupiedTilesForGroup,
+  isRectangleLocked
 } from 'src/utils';
 
 const dragItems = (
@@ -20,7 +21,12 @@ const dragItems = (
   // Separate all item types upfront
   const itemRefs = items.filter(item => item.type === 'ITEM');
   const textBoxRefs = items.filter(item => item.type === 'TEXTBOX');
-  const rectangleRefs = items.filter(item => item.type === 'RECTANGLE');
+  // Locked rectangles are dropped up front so they neither move nor register a
+  // history entry. The reducer enforces this too, but bailing out here keeps
+  // undo history clean.
+  const rectangleRefs = items.filter(
+    (item) => item.type === 'RECTANGLE' && !isRectangleLocked(scene, item.id)
+  );
   const anchorRefs = items.filter(item => item.type === 'CONNECTOR_ANCHOR');
 
   // Calculate node targets if any nodes are selected
@@ -75,7 +81,6 @@ const dragItems = (
       // 3. Update rectangles (chained from textbox state)
       rectangleRefs.forEach((item) => {
         const rectangle = getItemByIdOrThrow(scene.rectangles, item.id).value;
-        if (rectangle.locked) return; // Skip locked rectangles
         currentState = scene.updateRectangle(item.id, {
           from: CoordsUtils.add(rectangle.from, delta),
           to: CoordsUtils.add(rectangle.to, delta)

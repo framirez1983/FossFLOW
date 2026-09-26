@@ -19,3 +19,5 @@ export * from './sanitizeSvg';
 export * from './diagramFile';
 export * from './editableTarget';
 export * from './compass';
+export * from './rectangleLock';
+export * from './panGuard';

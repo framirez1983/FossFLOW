@@ -3,6 +3,9 @@ import { Rectangle } from 'src/types';
 import { getItemByIdOrThrow } from 'src/utils';
 import { State, ViewReducerContext } from './types';
 
+/** Fields that define a rectangle's geometry. Locked rectangles refuse these. */
+const GEOMETRY_FIELDS = ['from', 'to'] as const;
+
 export const updateRectangle = (
   { id, ...updates }: { id: string } & Partial<Rectangle>,
   { viewId, state }: ViewReducerContext
@@ -16,6 +19,20 @@ export const updateRectangle = (
 
     const rectangle = getItemByIdOrThrow(rectangles, id);
     const newRectangle = { ...rectangle.value, ...updates };
+
+    // "Lock position" is a mutation restriction, enforced here at the single
+    // chokepoint every geometry write funnels through. Drag, resize anchors,
+    // lasso drags and any future path all land in this reducer, so a locked
+    // rectangle cannot have its geometry changed by any of them. Non-geometry
+    // updates (colour, and the lock itself) still apply.
+    if (rectangle.value.locked) {
+      GEOMETRY_FIELDS.forEach((field) => {
+        if (field in updates) {
+          newRectangle[field] = rectangle.value[field];
+        }
+      });
+    }
+
     rectangles[rectangle.index] = newRectangle;
   });
 

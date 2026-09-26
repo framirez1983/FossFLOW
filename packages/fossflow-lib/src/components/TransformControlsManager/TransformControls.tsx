@@ -18,11 +18,19 @@ interface Props {
   from: Coords;
   to: Coords;
   onAnchorMouseDown?: (anchorPosition: AnchorPosition) => void;
+  /** Renders a non-interactive selection state (e.g. a locked rectangle). */
+  locked?: boolean;
 }
 
 const strokeWidth = 2;
 
-export const TransformControls = ({ from, to, onAnchorMouseDown, keepUpright = false }: Props) => {
+export const TransformControls = ({
+  from,
+  to,
+  onAnchorMouseDown,
+  keepUpright = false,
+  locked = false
+}: Props) => {
   const viewOrientation = useUiStateStore(state => state.viewOrientation);
   const { css, pxSize } = useIsoProjection({
     from,
@@ -77,7 +85,12 @@ export const TransformControls = ({ from, to, onAnchorMouseDown, keepUpright = f
 
       {anchors.map(({ position, onMouseDown }) => {
         return (
-          <TransformAnchor position={position} onMouseDown={onMouseDown} />
+          <TransformAnchor
+            key={`${position.x}-${position.y}`}
+            position={position}
+            onMouseDown={onMouseDown}
+            disabled={locked}
+          />
         );
       })}
     </>

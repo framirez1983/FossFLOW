@@ -1,7 +1,8 @@
 import {
   createRectangle,
   updateRectangle,
-  deleteRectangle
+  deleteRectangle,
+  toggleRectangleLock
 } from '../rectangle';
 import { State, ViewReducerContext } from '../types';
 import { Rectangle, View } from 'src/types';
@@ -240,6 +241,155 @@ describe('rectangle reducer', () => {
       expect(result.model.views[0].rectangles![0].id).toBe('rect2');
       
       // Rectangles don't have scene data - only verify model is updated
+    });
+  });
+
+  describe('rectangle lock position', () => {
+    const geometryOf = (state: State, id: string) => {
+      const rectangle = state.model.views[0].rectangles!.find((r) => r.id === id)!;
+      return { from: rectangle.from, to: rectangle.to };
+    };
+
+    const setLock = (state: State, locked: boolean): State => {
+      state.model.views[0].rectangles![0].locked = locked;
+      return state;
+    };
+
+    it('treats a legacy rectangle with no locked field as unlocked', () => {
+      delete (mockRectangle as Partial<Rectangle>).locked;
+      mockState.model.views[0].rectangles = [mockRectangle];
+
+      const result = updateRectangle(
+        { id: 'rect1', to: { x: 999, y: 999 } },
+        mockContext
+      );
+
+      expect(result.model.views[0].rectangles![0].to).toEqual({ x: 999, y: 999 });
+    });
+
+    it('leaves geometry unchanged for a locked rectangle', () => {
+      setLock(mockState, true);
+
+      const result = updateRectangle(
+        { id: 'rect1', from: { x: 10, y: 10 }, to: { x: 20, y: 20 } },
+        mockContext
+      );
+
+      expect(geometryOf(result, 'rect1')).toEqual({
+        from: mockRectangle.from,
+        to: mockRectangle.to
+      });
+    });
+
+    it('blocks a drag-style update of both corners', () => {
+      setLock(mockState, true);
+      const delta = { x: 5, y: 7 };
+      const expected = geometryOf(mockState, 'rect1');
+
+      const result = updateRectangle(
+        {
+          id: 'rect1',
+          from: { x: expected.from.x + delta.x, y: expected.from.y + delta.y },
+          to: { x: expected.to.x + delta.x, y: expected.to.y + delta.y }
+        },
+        mockContext
+      );
+
+      expect(geometryOf(result, 'rect1')).toEqual(expected);
+    });
+
+    it('blocks a resize of a single corner', () => {
+      setLock(mockState, true);
+
+      const result = updateRectangle(
+        { id: 'rect1', to: { x: 4242, y: 4242 } },
+        mockContext
+      );
+
+      expect(result.model.views[0].rectangles![0].to).toEqual(mockRectangle.to);
+    });
+
+    it('still allows non-geometry updates while locked', () => {
+      setLock(mockState, true);
+
+      const result = updateRectangle(
+        { id: 'rect1', color: 'color9', customColor: '#123456' },
+        mockContext
+      );
+
+      expect(result.model.views[0].rectangles![0].color).toBe('color9');
+      expect(result.model.views[0].rectangles![0].customColor).toBe('#123456');
+    });
+
+    it('restores movement after unlocking', () => {
+      setLock(mockState, true);
+
+      // One toggle unlocks the rectangle we just locked.
+      const unlockedResult = toggleRectangleLock('rect1', mockContext);
+
+      expect(unlockedResult.model.views[0].rectangles![0].locked).toBe(false);
+
+      const moved = updateRectangle(
+        { id: 'rect1', to: { x: 777, y: 888 } },
+        { ...mockContext, state: unlockedResult }
+      );
+
+      expect(moved.model.views[0].rectangles![0].to).toEqual({ x: 777, y: 888 });
+    });
+
+    it('restores resize after unlocking', () => {
+      setLock(mockState, true);
+
+      const unlockedResult = toggleRectangleLock('rect1', mockContext);
+
+      const resized = updateRectangle(
+        { id: 'rect1', from: { x: 3, y: 4 } },
+        { ...mockContext, state: unlockedResult }
+      );
+
+      expect(resized.model.views[0].rectangles![0].from).toEqual({ x: 3, y: 4 });
+    });
+
+    it('toggleRectangleLock flips the flag and is a single reversible change', () => {
+      expect(toggleRectangleLock('rect1', mockContext)
+        .model.views[0].rectangles![0].locked).toBe(true);
+
+      const locked = toggleRectangleLock('rect1', mockContext);
+      expect(toggleRectangleLock('rect1', { ...mockContext, state: locked })
+        .model.views[0].rectangles![0].locked).toBe(false);
+    });
+
+    it('toggleRectangleLock is itself allowed on a locked rectangle', () => {
+      setLock(mockState, true);
+
+      const result = toggleRectangleLock('rect1', mockContext);
+
+      expect(result.model.views[0].rectangles![0].locked).toBe(false);
+    });
+
+    it('does not leak the lock onto other rectangles', () => {
+      mockState.model.views[0].rectangles = [
+        { ...mockRectangle, locked: true },
+        { id: 'rect2', from: { x: 5, y: 5 }, to: { x: 6, y: 6 }, locked: false }
+      ];
+
+      const result = updateRectangle(
+        { id: 'rect2', to: { x: 60, y: 60 } },
+        mockContext
+      );
+
+      expect(result.model.views[0].rectangles![1].to).toEqual({ x: 60, y: 60 });
+    });
+
+    it('duplicate View preserves the lock', () => {
+      setLock(mockState, true);
+
+      const duplicated = JSON.parse(JSON.stringify(mockState.model.views[0]));
+      duplicated.id = 'view2';
+      duplicated.name = 'Copy';
+      mockState.model.views.push(duplicated);
+
+      expect(mockState.model.views[1].rectangles![0].locked).toBe(true);
     });
   });
 

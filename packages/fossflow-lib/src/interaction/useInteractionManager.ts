@@ -3,7 +3,7 @@ import { useModelStoreApi } from 'src/stores/modelStore';
 import { useUiStateStore, useUiStateStoreApi } from 'src/stores/uiStateStore';
 import { ModeActions, State, SlimMouseEvent, Mouse } from 'src/types';
 import { DialogTypeEnum } from 'src/types/ui';
-import { getMouse, getItemAtTile, generateId, incrementZoom, decrementZoom, isEditableEventTarget } from 'src/utils';
+import { getMouse, getItemAtTile, generateId, incrementZoom, decrementZoom, isEditableEventTarget, isRectangleLocked } from 'src/utils';
 import { useResizeObserver } from 'src/hooks/useResizeObserver';
 import { useScene } from 'src/hooks/useScene';
 import { useHistory } from 'src/hooks/useHistory';
@@ -374,25 +374,52 @@ export const useInteractionManager = () => {
         return;
       }
 
-      const itemAtTile = getItemAtTile({
-        tile: uiState.mouse.position.tile,
-        scene
+      // The context menu must be self-contained. Mouse state is updated on a
+      // RAF throttle, so uiState.mouse.position.tile can be stale (or absent)
+      // when contextmenu fires - notably if the pointer reached this position
+      // without a preceding processed mousemove. Derive the position and tile
+      // from the contextmenu event itself, using exactly the same inputs as the
+      // normal mouse path.
+      if (!rendererRef.current) return;
+
+      const contextMouse = getMouse({
+        interactiveElement: rendererRef.current,
+        zoom: uiState.zoom,
+        viewOrientation: uiState.viewOrientation,
+        scroll: uiState.scroll,
+        lastMouse: uiState.mouse,
+        mouseEvent: e,
+        rendererSize
       });
 
-      if (itemAtTile) {
+      const tile = contextMouse.position.tile;
+
+      const itemAtTile = getItemAtTile({ tile, scene });
+
+      // A locked rectangle is a background surface for right-click purposes:
+      // it is treated exactly like empty canvas, so the standard creation menu
+      // appears at the clicked tile. Unlocked rectangles and every other
+      // foreground object keep their existing context behaviour, and because
+      // getItemAtTile resolves items before rectangles, a foreground object
+      // still wins and never falls through to the locked rectangle.
+      const isLockedBackground =
+        itemAtTile?.type === 'RECTANGLE' &&
+        isRectangleLocked(scene, itemAtTile.id);
+
+      if (itemAtTile && !isLockedBackground) {
         uiState.actions.setContextMenu({
           type: 'ITEM',
           item: itemAtTile,
-          tile: uiState.mouse.position.tile
+          tile
         });
       } else {
         uiState.actions.setContextMenu({
           type: 'EMPTY',
-          tile: uiState.mouse.position.tile
+          tile
         });
       }
     },
-    [uiStateApi, scene]
+    [uiStateApi, scene, rendererSize]
   );
 
   useEffect(() => {
